@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/SwamyDev/reinforcement.svg?branch=master)](https://travis-ci.org/SwamyDev/reinforcement) [![Coverage Status](https://coveralls.io/repos/github/SwamyDev/reinforcement/badge.svg?branch=master)](https://coveralls.io/github/SwamyDev/reinforcement?branch=master)
+[![Build Status](https://travis-ci.org/SwamyDev/reinforcement.svg?branch=master)](https://travis-ci.org/SwamyDev/reinforcement) [![Coverage Status](https://coveralls.io/repos/github/SwamyDev/reinforcement/badge.svg?branch=master)](https://coveralls.io/github/SwamyDev/reinforcement?branch=master)[![PyPI version](https://badge.fury.io/py/reinforcement.svg)](https://badge.fury.io/py/reinforcement)
 
 # Reinforcement
 The Reinforcement module aims to provide simple implementations for various reinforcement learning algorithms. The module tries to be agnostic about its use cases, but implements different solutions for policy selection, value- and q-function approximations as well as different agents for reinforcement learning algorithms. 
