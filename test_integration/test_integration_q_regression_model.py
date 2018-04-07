@@ -2,8 +2,8 @@ import tensorflow as tf
 import pytest
 from pytest import approx
 
-from models.q_model import InvalidDataSize
-from models.q_regression_model import QRegressionModel
+from reinforcement.models.q_model import InvalidDataSize
+from reinforcement.models.q_regression_model import QRegressionModel
 
 
 @pytest.fixture(scope="session", autouse=True)

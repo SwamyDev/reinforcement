@@ -1,4 +1,4 @@
-from reward_functions.q_table import QTable
+from reinforcement.reward_functions.q_table import QTable
 
 
 class QFunctionWrapper(QTable):

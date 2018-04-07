@@ -1,6 +1,6 @@
 import pytest
 
-from agents.td_agent import TDAgent
+from reinforcement.agents.td_agent import TDAgent
 
 
 class QFake:

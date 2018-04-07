@@ -1,4 +1,4 @@
-from reward_functions.q_neuronal import QNeuronal
+from reinforcement.reward_functions.q_neuronal import QNeuronal
 
 
 class MockAnn:

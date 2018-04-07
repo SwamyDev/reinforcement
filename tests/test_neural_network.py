@@ -1,6 +1,6 @@
 import tensorflow as tf
 
-from models.neural_network import NeuralNetwork, InvalidOperationError, NotCompiledError
+from reinforcement.models.neural_network import NeuralNetwork, InvalidOperationError, NotCompiledError
 
 
 class AnnBuilder:

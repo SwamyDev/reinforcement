@@ -4,7 +4,7 @@ from contextlib import contextmanager
 
 import pytest
 
-from reward_functions.value_table import ValueTable, Formats
+from reinforcement.reward_functions.value_table import ValueTable, Formats
 
 
 @contextmanager

@@ -1,7 +1,7 @@
 import random
 import pytest
 
-from policies.e_greedy_policies import EpsilonGreedyPolicy
+from reinforcement.policies.e_greedy_policies import EpsilonGreedyPolicy
 from tests.common_doubles import MockFilter, Call
 from tests.q_doubles import QFunctionWrapper
 

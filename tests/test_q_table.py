@@ -1,7 +1,7 @@
 import pytest
 
-from reward_functions.q_function import InvalidAction
-from reward_functions.q_table import QTable
+from reinforcement.reward_functions.q_function import InvalidAction
+from reinforcement.reward_functions.q_table import QTable
 
 
 @pytest.fixture
