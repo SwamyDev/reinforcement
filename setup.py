@@ -16,7 +16,7 @@ with open(path.join(here, 'README.md'), encoding='utf-8') as f:
 
 setup(
     name='reinforcement',
-    version='1.0.5',
+    version='1.0.6',
     description='A reinforcement learning module',
     long_description=long_description,
     long_description_content_type='text/markdown',
