@@ -1,2 +1,2 @@
 # reinforcement
-Python module implementing reinforcement learning algorithms,
+Python module implementing reinforcement learning algorithms.
