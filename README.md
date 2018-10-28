@@ -5,6 +5,12 @@ The Reinforcement module aims to provide simple implementations for various rein
 
 The project is in its early stage and currently only provides an n-step temporal difference learning agent. The main purpose of the project is to facilitate my own understanding of reinforcement learning, with no particular application in mind. 
 
+## Installation
+The library can simply be installed using pip:
+```
+pip install reinforcement
+```
+
 ## Module structure
 The module is organised into 3 main parts. Policies, reward functions and agents, each providing necessary components to construct a reinforcement learning agent. Components should have a low dependency amongst each other and share a simple common interface to facilitate modular construction of agents.
 
