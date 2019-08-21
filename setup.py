@@ -6,17 +6,17 @@ https://github.com/pypa/sampleproject
 
 from codecs import open
 from os import path
+
 from setuptools import setup, find_packages
 
 here = path.abspath(path.dirname(__file__))
 
-# Get the long description from the README file
 with open(path.join(here, 'README.md'), encoding='utf-8') as f:
     long_description = f.read().replace('\r\n', '\n')
 
 setup(
     name='reinforcement',
-    version='1.0.6',
+    version='1.1.0',
     description='A reinforcement learning module',
     long_description=long_description,
     long_description_content_type='text/markdown',
@@ -32,9 +32,10 @@ setup(
     ],
     keywords='AI reinforcement learning',
     packages=find_packages(exclude=['build', 'dist', 'reinforcement.egg-info', 'test_integration', 'tests']),
-    install_requires=['numpy', 'tensorflow'],
     extras_require={
-        'test': ['pytest', 'coverage'],
+        'tf_gpu': ['numpy<1.17', 'tensorflow-gpu==1.14'],
+        'tf_cpu': ['numpy<1.17', 'tensorflow==1.14'],
+        'test': ['numpy<1.17', 'tensorflow==1.14', 'pytest'],
     },
     project_urls={
         'Bug Reports': 'https://github.com/SwamyDev/reinforcement/issues',

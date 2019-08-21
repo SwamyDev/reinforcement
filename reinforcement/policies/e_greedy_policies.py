@@ -1,6 +1,9 @@
 import random
 
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    raise ImportError("reinforcement requires numpy<1.17")
 
 
 class Policy:
@@ -42,7 +45,7 @@ class EpsilonGreedyPolicy(Policy):
             return random.choice(action_space)
 
         vs = self._get_q_values_of_state(state, action_space, q_function)
-        return action_space[np.argmax(vs)]
+        return action_space[int(np.argmax(vs))]
 
 
 class NormalEpsilonGreedyPolicy(Policy):
@@ -58,6 +61,4 @@ class NormalEpsilonGreedyPolicy(Policy):
 
         action_space = self._get_actions(state, q_function)
         vs = self._get_q_values_of_state(state, action_space, q_function)
-        return action_space[np.argmax(vs + np.random.randn(1, len(action_space)) * e)]
-
-
+        return action_space[int(np.argmax(vs + np.random.randn(1, len(action_space)) * e))]

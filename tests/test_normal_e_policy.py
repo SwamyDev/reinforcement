@@ -1,4 +1,7 @@
-import numpy as np
+try:
+    import numpy as np
+except ImportError:
+    raise ImportError("reinforcement requires numpy<1.17")
 import pytest
 
 from reinforcement.policies.e_greedy_policies import NormalEpsilonGreedyPolicy

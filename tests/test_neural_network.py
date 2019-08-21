@@ -1,4 +1,7 @@
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except ImportError:
+    raise ImportError("reinforcement requires tensorflow 1.14")
 
 from reinforcement.models.neural_network import NeuralNetwork, InvalidOperationError, NotCompiledError
 
