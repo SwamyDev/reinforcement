@@ -38,5 +38,6 @@ install: meta clean
 test: install
 	pytest --verbose --color=yes .
 
-coverage: install 
+coverage: install
+	pip install pytest-cov
 	pytest --cov=reinforcement --cov-report term-missing
