@@ -1,7 +1,7 @@
 .PHONY: help meta install clean test coverage
 
 
-TARGET ?= test
+TARGET ?= tf_cpu
 
 
 .DEFAULT: help
@@ -35,9 +35,9 @@ install: meta clean
 	pip install --upgrade setuptools
 	pip install .[$(TARGET)]
 
-test: install
+test: clean
 	pytest --verbose --color=yes .
 
-coverage: install
+coverage: clean
 	pip install pytest-cov
 	pytest --cov=reinforcement --cov-report term-missing
