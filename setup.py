@@ -5,18 +5,22 @@ https://github.com/pypa/sampleproject
 """
 
 from codecs import open
-from os import path
+from pathlib import Path
 
 from setuptools import setup, find_packages
 
-here = path.abspath(path.dirname(__file__))
+here = Path(__file__).absolute().parent
 
-with open(path.join(here, 'README.md'), encoding='utf-8') as f:
+with open(here / Path('README.md'), encoding='utf-8') as f:
     long_description = f.read().replace('\r\n', '\n')
+
+_version = {}
+with open(here / Path('reinforcement/_version.py', mode='r')) as f:
+    exec(f.read(), _version)
 
 setup(
     name='reinforcement',
-    version='1.1.0',
+    version=_version['__version__'],
     description='A reinforcement learning module',
     long_description=long_description,
     long_description_content_type='text/markdown',

@@ -2,8 +2,7 @@ language: python
 python:
 - '3.6'
 install:
-- pip install python-coveralls
-- pip install -r requirements.txt
+  - make install
 script:
 - pytest --cov=reinforcement --cov-report term-missing
 after_success:
