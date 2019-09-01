@@ -21,9 +21,6 @@ class TrajectoryBuilder:
 
 
 class Trajectories:
-    _RETURNS = 2
-    _ACTIONS = 1
-
     def __init__(self):
         self._trajectories = list()
 

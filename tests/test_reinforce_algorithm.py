@@ -67,8 +67,8 @@ class TrajectoriesStub(Trajectories):
 
 
 class BaselineStub:
-    def __init__(self, size):
-        self._estimates = np.random.uniform(size)
+    def __init__(self, default_size):
+        self._estimates = np.random.uniform(default_size)
 
     def set_estimates(self, estimates):
         self._estimates = estimates
@@ -107,7 +107,7 @@ def trajectories():
 
 @pytest.fixture
 def baseline():
-    return BaselineSpy(size=(2, 3))
+    return BaselineSpy(default_size=(2, 3))
 
 
 def make_trajectory(actions=None, returns=None):
