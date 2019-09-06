@@ -94,11 +94,6 @@ def policy():
 
 
 @pytest.fixture
-def observation():
-    return np.random.uniform(size=(2, 3))
-
-
-@pytest.fixture
 def trajectories():
     t = TrajectoriesStub()
     t.set_trajectories(make_trajectory(), make_trajectory())
