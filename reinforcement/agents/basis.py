@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 
 import numpy as np
 
-from reinforcement.trajectories import TrajectoryBuilder
+from reinforcement.trajectories import TrajectoryRecorder
 
 
 class AgentInterface(ABC):
@@ -22,17 +22,19 @@ class AgentInterface(ABC):
 class BatchAgent(AgentInterface):
     def __init__(self, algorithm):
         self._algorithm = algorithm
-        self._trajectory_record = TrajectoryBuilder()
+        self._recorder = TrajectoryRecorder()
+        self._record = self._recorder.start()
 
     def signal(self, reward):
-        self._trajectory_record = self._trajectory_record.finish_with(reward)
+        self._record = next(self._record.add_reward(reward))
 
     def next_action(self, observation):
         p = self._algorithm.sample(observation)
         a = np.random.choice(len(p), p=p)
-        self._trajectory_record = self._trajectory_record.add_action(a).given(observation)
+        self._record = next(self._record.add_action(a))
+        self._record = next(self._record.add_observation(observation))
         return a
 
     def train(self):
-        trj = self._trajectory_record.to_trajectory()
+        trj = self._recorder.to_trajectory()
         self._algorithm.optimize(trj)

@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 from pytest import approx
 
-from agents.basis import AgentInterface, BatchAgent
-from reinforcement.trajectories import TrajectoryBuilder, TrajectoryError
+from reinforcement.agents.basis import AgentInterface, BatchAgent
+from reinforcement.trajectories import TrajectoryError
 
 
 # noinspection PyAbstractClass
@@ -64,11 +64,11 @@ def batch_agent(algorithm):
 
 
 @pytest.fixture
-def episode(batch_agent, observation_factory):
+def episode(batch_agent, observation_factory, make_trajectory_builder):
     class _Episode:
         @staticmethod
         def run():
-            b = TrajectoryBuilder()
+            b = make_trajectory_builder()
             for r in range(-1, 2):
                 o = observation_factory()
                 a = batch_agent.next_action(o)

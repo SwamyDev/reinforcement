@@ -23,40 +23,61 @@ class Trajectory:
             f"pi -> {a} given: \n{o}\n R: {r}" for a, o, r in zip(self.actions, self.observations, self.returns))
 
 
-class TrajectoryBuilder:
+def history_to_trajectory(history):
+    if len(history) == 0:
+        raise TrajectoryError("Attempt to create trajectory from empty history.\nRecord some data first.")
+    obs, ats, rws = list(zip(*history))
+    history.clear()
+    return Trajectory(np.array(obs), np.array(ats), np.array(rws, dtype=np.float32))
+
+
+class TrajectoryRecorder:
     def __init__(self):
         self._history = list()
-        self._current_record = None
+        self._action = None
+        self._observation = None
+        self._reward = None
 
-    def add(self, observation, action, reward):
-        self._history.append((observation, action, reward))
+    def start(self):
+        return self._ActionRecord(self)
 
-    def add_action(self, action):
-        return self._ActionRecord(self, action)
-
-    class _ActionRecord:
-        def __init__(self, builder, action):
-            self.builder = builder
-            self.action = action
-
-        def given(self, observation):
-            return self._ObservationRecord(self, observation)
-
-        class _ObservationRecord:
-            def __init__(self, action_rec, observation):
-                self._action_rec = action_rec
-                self._observation = observation
-
-            def finish_with(self, reward):
-                self._action_rec.builder.add(self._observation, self._action_rec.action, reward)
-                return self._action_rec.builder
+    def record_next(self):
+        self._history.append((self._observation, self._action, self._reward))
 
     def to_trajectory(self):
-        if len(self._history) == 0:
-            raise TrajectoryError("Attempt to create trajectory from empty history.\nRecord some data first.")
-        obs, ats, rws = list(zip(*self._history))
-        self._history.clear()
-        return Trajectory(np.array(obs), np.array(ats), np.array(rws, dtype=np.float32))
+        return history_to_trajectory(self._history)
+
+    class _Record:
+        def __init__(self, recorder):
+            self._recorder = recorder
+
+    class _ActionRecord(_Record):
+        def add_action(self, a):
+            self._recorder._action = a
+            return self
+
+        def __next__(self):
+            # noinspection PyProtectedMember
+            return self._recorder._ObservationRecord(self._recorder)
+
+    class _ObservationRecord(_Record):
+        def add_observation(self, o):
+            self._recorder._observation = o
+            return self
+
+        def __next__(self):
+            # noinspection PyProtectedMember
+            return self._recorder._RewardRecord(self._recorder)
+
+    class _RewardRecord(_Record):
+        def add_reward(self, r):
+            self._recorder._reward = r
+            self._recorder.record_next()
+            return self
+
+        def __next__(self):
+            # noinspection PyProtectedMember
+            return self._recorder._ActionRecord(self._recorder)
 
 
 class TrajectoryError(ValueError):

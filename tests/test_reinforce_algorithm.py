@@ -1,10 +1,8 @@
-import itertools
-
 import numpy as np
 import pytest
 
 from reinforcement.algorithm.reinforce import Reinforce
-from reinforcement.trajectories import TrajectoryBuilder, Trajectories
+from reinforcement.trajectories import Trajectories
 
 CALL_ORDER = list()
 
@@ -94,7 +92,7 @@ def policy():
 
 
 @pytest.fixture
-def trajectories():
+def trajectories(make_trajectory):
     t = TrajectoriesStub()
     t.set_trajectories(make_trajectory(), make_trajectory())
     return t
@@ -103,13 +101,6 @@ def trajectories():
 @pytest.fixture
 def baseline():
     return BaselineSpy(size=(2, 3))
-
-
-def make_trajectory(actions=None, returns=None):
-    t = TrajectoryBuilder()
-    for a, r in zip(actions or itertools.repeat(np.array([0.5, 0.5])), returns or range(0, 3)):
-        t.add(np.zeros((3, 2)), a, r)
-    return t.to_trajectory()
 
 
 def test_sampling_returns_estimate_of_action_probabilities(policy, observation):
@@ -125,7 +116,7 @@ def assert_estimates(actual, expected):
     np.testing.assert_array_equal(actual, expected)
 
 
-def test_reinforce_calculated_correct_reward_signal(policy, trajectories, baseline):
+def test_reinforce_calculated_correct_reward_signal(policy, trajectories, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5)
     baseline.set_estimates([
         [2, 3, 4],
@@ -153,7 +144,7 @@ def test_make_sure_baseline_estimation_is_done_before_model_fitting(policy, traj
     assert CALL_ORDER == [baseline.estimate, policy.fit]
 
 
-def test_fitting_the_approximation_uses_the_correct_loss(policy, trajectories, baseline):
+def test_fitting_the_approximation_uses_the_correct_loss(policy, trajectories, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.9)
     baseline.set_estimates([[1, 1], [1, 1]])
     trajectories.set_trajectories(make_trajectory(actions=[[0.2, 0.8], [0.9, 0.1]], returns=[3, 5]),
