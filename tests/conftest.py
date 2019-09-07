@@ -35,10 +35,12 @@ def make_trajectory_builder():
 
 @pytest.fixture
 def make_trajectory(make_trajectory_builder):
-    def factory(actions=None, returns=None):
+    def factory(actions=None, observations=None, returns=None):
         t = make_trajectory_builder()
-        for a, r in zip(actions or itertools.repeat(np.array([0.5, 0.5])), returns or range(0, 3)):
-            t.add(np.zeros((3, 2)), a, r)
+        for a, o, r in zip(actions or itertools.repeat(0),
+                           observations or itertools.repeat(np.zeros((3, 2))),
+                           returns or range(0, 3)):
+            t.add(o, a, r)
         return t.to_trajectory()
 
     return factory

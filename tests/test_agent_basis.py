@@ -35,7 +35,7 @@ class MissingTrain(AgentInterface):
 
 class AlgorithmStub:
     def __init__(self):
-        self.returns_sample_probability = [0.5, 0.5]
+        self.returns_sample_probability = [0.2, 0.8]
 
     def sample(self, observation):
         return self.returns_sample_probability
@@ -64,7 +64,7 @@ def batch_agent(algorithm):
 
 
 @pytest.fixture
-def episode(batch_agent, observation_factory, make_trajectory_builder):
+def episode(batch_agent, algorithm, observation_factory, make_trajectory_builder):
     class _Episode:
         @staticmethod
         def run():
