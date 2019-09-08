@@ -1,27 +1,11 @@
 import numpy as np
 import pytest
 
+import reinforcement.np_operations as np_ops
 from reinforcement.algorithm.reinforce import Reinforce
+from reinforcement.np_operations import softmax
 
 CALL_ORDER = list()
-
-
-class OperationsSim:
-    @staticmethod
-    def reduce_mean(array):
-        return np.mean(array)
-
-    @staticmethod
-    def one_hot(ks, n):
-        return np.array([np.eye(1, n, k=k)[0] for k in ks])
-
-    @staticmethod
-    def reduce_sum(array, axis):
-        return np.sum(array, axis=axis)
-
-    @staticmethod
-    def log(array):
-        return np.log(array).T
 
 
 class PolicySpy:
@@ -47,7 +31,7 @@ class PolicySim(PolicySpy):
     def estimate(self, obs):
         roll = np.random.uniform(size=(self.num_actions,))
         key = str(obs)
-        self._estimations[key] = np.exp(roll) / np.sum(np.exp(roll))
+        self._estimations[key] = softmax(roll)
         return self._estimations[key]
 
     def estimate_for(self, obs):
@@ -59,9 +43,8 @@ class PolicySim(PolicySpy):
 
     def fit(self, trajectory):
         super().fit(trajectory)
-        sim = OperationsSim()
         probabilities = np.array([self.estimate(o) for o in trajectory.observations])
-        self.received_loss_signal = self._calc(sim, trajectory.actions, probabilities, trajectory.returns)
+        self.received_loss_signal = self._calc(np_ops, trajectory.actions, probabilities, trajectory.returns)
 
     def __repr__(self):
         return f"ApproximationSim() - {len(self._estimations)} estimations done"

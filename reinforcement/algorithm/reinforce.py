@@ -1,7 +1,6 @@
 import numpy as np
 
 
-
 class Reinforce:
     def __init__(self, policy, gamma, baseline):
         self._policy = policy

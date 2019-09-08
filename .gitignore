@@ -106,3 +106,6 @@ ENV/
 
 # generated files
 reinforcement/_version.py
+
+# intermediate logs
+tests/log
