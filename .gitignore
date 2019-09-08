@@ -108,4 +108,4 @@ ENV/
 reinforcement/_version.py
 
 # intermediate logs
-tests/log
+tests/*_log
