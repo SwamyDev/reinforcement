@@ -254,6 +254,7 @@ def dt_agent():
 
 @pytest.fixture
 def session():
+    tf.compat.v1.reset_default_graph()
     with tf.compat.v1.Session() as s:
         yield s
 
@@ -313,6 +314,7 @@ def tf_reinforce_agent(tf_reinforce):
     return BatchAgent(tf_reinforce)
 
 
+@pytest.mark.flaky(reruns=2, reruns_delay=3)
 def test_random_agent_only_achieves_random_expected_total_return(simple_env, random_agent):
     avg_return = run_sessions_with(simple_env, random_agent, 1000)
     assert avg_return == approx(0.0, abs=2)
@@ -338,12 +340,14 @@ def test_deterministic_agent_achieves_max_return(simple_env, dt_agent, eval_leng
     assert avg_return == approx(simple_env.max_total_return, rel=1)
 
 
-def test_reinforce_agent_achieves_near_optimal_solution(simple_env, np_reinforce_agent, train_length, eval_length):
+@pytest.mark.flaky(reruns=2, reruns_delay=3)
+def test_np_reinforce_agent_achieves_near_optimal_solution(simple_env, np_reinforce_agent, train_length, eval_length):
     run_sessions_with(simple_env, np_reinforce_agent, train_length)
     avg_return = run_sessions_with(simple_env, np_reinforce_agent, eval_length)
     assert avg_return == approx(simple_env.max_total_return, abs=5)
 
 
+@pytest.mark.flaky(reruns=2, reruns_delay=3)
 def test_tf_reinforce_agent_learns_near_optimal_solution(simple_env, tf_reinforce_agent, train_length,
                                                          eval_length):
     run_sessions_with(simple_env, tf_reinforce_agent, train_length)
