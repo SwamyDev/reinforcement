@@ -185,7 +185,7 @@ class TfSwitchingPolicy:
         self._out_probabilities = tf.nn.softmax(tf.matmul(self._in_observations, theta))
         self._train = None
 
-        self._logs = [tf.summary.scalar("mean normalized return", tf.reduce_mean(self._in_returns)),
+        self._logs = [tf.compat.v1.summary.scalar("mean_normalized_return", tf.reduce_mean(self._in_returns)),
                       self._log_2d_tensor_as_img("theta", theta)]
         self._log_summary = tf.no_op
         self._sum_writer = None
@@ -193,7 +193,7 @@ class TfSwitchingPolicy:
 
     @staticmethod
     def _log_2d_tensor_as_img(name, mat):
-        return tf.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
+        return tf.compat.v1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
 
     def set_signal_calc(self, signal_calc):
         loss = signal_calc(tf_ops, self._in_actions, self._out_probabilities, self._in_returns)
@@ -202,8 +202,8 @@ class TfSwitchingPolicy:
         self._finish_logs(loss)
 
     def _finish_logs(self, loss):
-        self._logs.append(tf.summary.scalar("loss", loss))
-        self._log_summary = tf.summary.merge(self._logs)
+        self._logs.append(tf.compat.v1.summary.scalar("loss", loss))
+        self._log_summary = tf.compat.v1.summary.merge(self._logs)
         self._sum_writer = self._make_sum_writer(self._session.graph)
 
     def estimate(self, observation):

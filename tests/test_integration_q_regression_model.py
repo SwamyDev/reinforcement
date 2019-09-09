@@ -8,17 +8,17 @@ from reinforcement.models.q_regression_model import QRegressionModel
 
 @pytest.fixture(scope="session", autouse=True)
 def config_tensorflow():
-    original_v = tf.logging.get_verbosity()
-    tf.logging.set_verbosity(3)
-    tf.set_random_seed(42)
+    original_v = tf.compat.v1.logging.get_verbosity()
+    tf.compat.v1.logging.set_verbosity(3)
+    tf.compat.v1.set_random_seed(42)
     yield
     tf.logging.set_verbosity(original_v)
 
 
 @pytest.fixture(autouse=True)
 def set_session():
-    tf.reset_default_graph()
-    with tf.Session():
+    tf.compat.v1.reset_default_graph()
+    with tf.compat.v1.Session():
         yield
 
 
