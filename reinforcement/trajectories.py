@@ -2,7 +2,7 @@ import numpy as np
 
 
 class Trajectory:
-    def __init__(self, observations, actions, returns):
+    def __init__(self, actions, observations, returns):
         self.observations = observations
         self.actions = actions
         self.returns = returns
@@ -11,8 +11,8 @@ class Trajectory:
         return len(self.returns)
 
     def __eq__(self, other):
-        return np.array_equal(self.observations, other.observations) and \
-               np.array_equal(self.actions, other.actions) and \
+        return np.array_equal(self.actions, other.actions) and \
+               np.array_equal(self.observations, other.observations) and \
                np.array_equal(self.returns, other.returns)
 
     def __repr__(self):
@@ -26,9 +26,9 @@ class Trajectory:
 def history_to_trajectory(history):
     if len(history) == 0:
         raise TrajectoryError("Attempt to create trajectory from empty history.\nRecord some data first.")
-    obs, ats, rws = list(zip(*history))
+    ats, obs, rws = list(zip(*history))
     history.clear()
-    return Trajectory(np.array(obs, dtype=np.float32), np.array(ats), np.array(rws, dtype=np.float32))
+    return Trajectory(np.array(ats), np.array(obs, dtype=np.float32), np.array(rws, dtype=np.float32))
 
 
 class TrajectoryRecorder:
@@ -42,7 +42,7 @@ class TrajectoryRecorder:
         return self._ActionRecord(self)
 
     def record_next(self):
-        self._history.append((self._observation, self._action, self._reward))
+        self._history.append((self._action, self._observation, self._reward))
 
     def to_trajectory(self):
         return history_to_trajectory(self._history)

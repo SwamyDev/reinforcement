@@ -1,24 +1,28 @@
-import tensorflow as tf
+try:
+    import tensorflow as tf
+    import tensorflow.compat.v1 as tf1
+except ImportError:
+    raise ImportError("reinforcement requires tensorflow 1.14")
 import pytest
-from pytest import approx
 
+from pytest import approx
 from reinforcement.models.q_model import InvalidDataSize
 from reinforcement.models.q_regression_model import QRegressionModel
 
 
 @pytest.fixture(scope="session", autouse=True)
 def config_tensorflow():
-    original_v = tf.compat.v1.logging.get_verbosity()
-    tf.compat.v1.logging.set_verbosity(3)
-    tf.compat.v1.set_random_seed(42)
+    original_v = tf1.logging.get_verbosity()
+    tf1.logging.set_verbosity(3)
+    tf1.set_random_seed(42)
     yield
     tf.logging.set_verbosity(original_v)
 
 
 @pytest.fixture(autouse=True)
 def set_session():
-    tf.compat.v1.reset_default_graph()
-    with tf.compat.v1.Session():
+    tf1.reset_default_graph()
+    with tf1.Session():
         yield
 
 

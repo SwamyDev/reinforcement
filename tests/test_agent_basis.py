@@ -1,6 +1,7 @@
 import numpy as np
 import pytest
 from pytest import approx
+from reinforcement.np_operations import one_hot
 
 from reinforcement.agents.basis import AgentInterface, BatchAgent
 from reinforcement.trajectories import TrajectoryError
@@ -35,10 +36,10 @@ class MissingTrain(AgentInterface):
 
 class AlgorithmStub:
     def __init__(self):
-        self.returns_sample_probability = [0.2, 0.8]
+        self.actions_probability = [0.2, 0.8]
 
     def sample(self, observation):
-        return self.returns_sample_probability
+        return self.actions_probability
 
     def optimize(self, trajectory):
         pass
@@ -73,7 +74,7 @@ def episode(batch_agent, algorithm, observation_factory, make_trajectory_builder
                 o = observation_factory()
                 a = batch_agent.next_action(o)
                 batch_agent.signal(r)
-                b.add(o, a, r)
+                b.add(a, o, r)
             return b.to_trajectory()
 
     return _Episode()
@@ -85,24 +86,22 @@ def test_missing_agent_interface_throws(invalid_agent_type):
         invalid_agent_type()
 
 
-def test_batch_agent_returns_action_as_one_hot_vector(batch_agent, observation):
+def test_batch_agent_returns_action(batch_agent, observation):
     action = batch_agent.next_action(observation)
     assert action == 0 or action == 1
 
 
 def test_batch_agents_samples_its_algorithm_for_next_action(batch_agent, algorithm, observation):
-    algorithm.returns_sample_probability = [0.8, 0.2]
-
     def do_transition():
         a = batch_agent.next_action(observation)
         batch_agent.signal(0)
         return a
 
-    assert on_average(do_transition) == approx([0.8, 0.2], abs=0.05)
+    assert on_average(do_transition) == approx(algorithm.actions_probability, abs=0.05)
 
 
 def on_average(producer):
-    return np.mean([np.eye(1, 2, k=producer())[0] for _ in range(1000)], axis=0)
+    return np.mean([one_hot([producer()], 2)[0] for _ in range(1000)], axis=0)
 
 
 def test_a_batch_agent_starts_out_with_an_empty_trajectory(batch_agent):

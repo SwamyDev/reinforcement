@@ -20,8 +20,8 @@ class TrajectoryBuilder:
         self._history = list()
         self._current_record = None
 
-    def add(self, observation, action, reward):
-        self._history.append((observation, action, reward))
+    def add(self, action, observation, reward):
+        self._history.append((action, observation, reward))
 
     def to_trajectory(self):
         return history_to_trajectory(self._history)
@@ -59,7 +59,7 @@ def make_trajectory(make_trajectory_builder):
         for a, o, r in zip(actions or itertools.repeat(0),
                            observations or itertools.repeat(np.zeros((3, 2))),
                            returns or range(0, 3)):
-            t.add(o, a, r)
+            t.add(a, o, r)
         return t.to_trajectory()
 
     return factory

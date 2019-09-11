@@ -1,10 +1,15 @@
+try:
+    import tensorflow as tf
+    import tensorflow.compat.v1 as tf1
+except ImportError:
+    raise ImportError("reinforcement requires tensorflow 1.14")
+
 import numpy as np
 import pytest
-import tensorflow as tf
-from pytest import approx
-
 import reinforcement.np_operations as np_ops
 import reinforcement.tf_operations as tf_ops
+
+from pytest import approx
 from reinforcement.agents.basis import BatchAgent, AgentInterface
 from reinforcement.algorithm.reinforce import Reinforce
 
@@ -16,7 +21,6 @@ class Space:
 class Discrete(Space):
     def __init__(self, n):
         self.n = n
-        self.shape = (1,)
 
     def sample(self):
         return np.random.randint(self.n)
@@ -43,12 +47,23 @@ class BinaryBox(Box):
         return np.array([r, 1 - r])
 
 
-class SimpleSwitchingMDP:
+class NormalDistribution:
+    def __init__(self, mean, std):
+        self.mean = mean
+        self.std = std
+
+    def sample(self):
+        return np.random.normal(self.mean, self.std)
+
+
+class SwitchingMDP:
     def __init__(self):
         self.action_space = Discrete(2)
         self.observation_space = BinaryBox()
         self.len_episode = 100
-        self.max_total_return = 100
+        self._reward = NormalDistribution(1, 0.1)
+        self._penalty = NormalDistribution(-1, 0.1)
+        self.avg_total_return = self.len_episode * self._reward.mean
         self._current_state = None
         self._episode = None
 
@@ -61,9 +76,9 @@ class SimpleSwitchingMDP:
         self._episode += 1
         if self._is_valid(action):
             self._flip_state()
-            return self._current_state, np.random.normal(1, 0.1), self._is_done(), None
+            return self._current_state, self._reward.sample(), self._is_done(), None
         else:
-            return self._current_state, np.random.normal(-1, 0.1), self._is_done(), None
+            return self._current_state, self._penalty.sample(), self._is_done(), None
 
     def _is_valid(self, action):
         return action is not None and self._current_state[0] != action
@@ -77,7 +92,7 @@ class SimpleSwitchingMDP:
     def __repr__(self):
         return f"SimpleDeterministic(action_space={repr(self.action_space)}, " \
                f"observation_space={repr(self.observation_space)}, len_episode={self.len_episode}," \
-               f"max_total_return={repr(self.max_total_return)})"
+               f"max_total_return={repr(self.avg_total_return)})"
 
 
 class RandomAgent(AgentInterface):
@@ -94,7 +109,7 @@ class RandomAgent(AgentInterface):
         pass
 
 
-class DeterministicAgent(AgentInterface):
+class OptimalAgent(AgentInterface):
     def next_action(self, observation):
         return 1 - observation[0]
 
@@ -105,7 +120,7 @@ class DeterministicAgent(AgentInterface):
         pass
 
 
-class NpSwitchingPolicy:
+class LinearPolicy:
     def __init__(self, plotter, lr=1):
         self._lr = lr
         self._m = np.random.normal(1, 0.001)  # high m avoids local maxima - use negative m for demonstration
@@ -172,39 +187,39 @@ class NpSwitchingPolicy:
             pass
 
 
-class TfSwitchingPolicy:
-    def __init__(self, session, obs_dims, num_actions, make_sum_writer, lr=10):
+class ParameterizedPolicy:
+    def __init__(self, session, obs_dims, num_actions, make_summary_writer, lr=10):
         self._session = session
-        self._make_sum_writer = make_sum_writer
+        self._make_summary_writer = make_summary_writer
         self._lr = lr
-        self._in_actions = tf.compat.v1.placeholder(shape=(None,), dtype=tf.uint8, name="actions")
-        self._in_returns = tf.compat.v1.placeholder(shape=(None,), dtype=tf.float32, name="returns")
-        self._in_observations = tf.compat.v1.placeholder(shape=(None, obs_dims), dtype=tf.float32, name="observations")
-        theta = tf.compat.v1.get_variable("theta", shape=(obs_dims, num_actions), dtype=tf.float32,
+        self._in_actions = tf1.placeholder(shape=(None,), dtype=tf.uint8, name="actions")
+        self._in_returns = tf1.placeholder(shape=(None,), dtype=tf.float32, name="returns")
+        self._in_observations = tf1.placeholder(shape=(None, obs_dims), dtype=tf.float32, name="observations")
+        theta = tf1.get_variable("theta", shape=(obs_dims, num_actions), dtype=tf.float32,
                                           initializer=tf.glorot_uniform_initializer())
         self._out_probabilities = tf.nn.softmax(tf.matmul(self._in_observations, theta))
         self._train = None
 
-        self._logs = [tf.compat.v1.summary.scalar("mean_normalized_return", tf.reduce_mean(self._in_returns)),
+        self._logs = [tf1.summary.scalar("mean_normalized_return", tf.reduce_mean(self._in_returns)),
                       self._log_2d_tensor_as_img("theta", theta)]
         self._log_summary = tf.no_op
-        self._sum_writer = None
+        self._summary_writer = None
         self._cur_iteration = 0
 
     @staticmethod
     def _log_2d_tensor_as_img(name, mat):
-        return tf.compat.v1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
+        return tf1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
 
     def set_signal_calc(self, signal_calc):
         loss = signal_calc(tf_ops, self._in_actions, self._out_probabilities, self._in_returns)
-        self._train = tf.compat.v1.train.GradientDescentOptimizer(learning_rate=self._lr).minimize(loss)
-        self._session.run(tf.compat.v1.global_variables_initializer())
+        self._train = tf1.train.GradientDescentOptimizer(learning_rate=self._lr).minimize(loss)
+        self._session.run(tf1.global_variables_initializer())
         self._finish_logs(loss)
 
     def _finish_logs(self, loss):
-        self._logs.append(tf.compat.v1.summary.scalar("loss", loss))
-        self._log_summary = tf.compat.v1.summary.merge(self._logs)
-        self._sum_writer = self._make_sum_writer(self._session.graph)
+        self._logs.append(tf1.summary.scalar("loss", loss))
+        self._log_summary = tf1.summary.merge(self._logs)
+        self._summary_writer = self._make_summary_writer(self._session.graph)
 
     def estimate(self, observation):
         return np.squeeze(
@@ -215,7 +230,7 @@ class TfSwitchingPolicy:
                                    {self._in_observations: trajectory.observations,
                                     self._in_actions: trajectory.actions,
                                     self._in_returns: trajectory.returns})
-        self._sum_writer.add_summary(log, self._cur_iteration)
+        self._summary_writer.add_summary(log, self._cur_iteration)
         self._cur_iteration += 1
 
 
@@ -238,29 +253,29 @@ def eval_length():
 
 
 @pytest.fixture
-def simple_env():
-    return SimpleSwitchingMDP()
+def switching_env():
+    return SwitchingMDP()
 
 
 @pytest.fixture
-def random_agent(simple_env):
-    return RandomAgent(simple_env.action_space)
+def random_agent(switching_env):
+    return RandomAgent(switching_env.action_space)
 
 
 @pytest.fixture
-def dt_agent():
-    return DeterministicAgent()
+def optimal_agent():
+    return OptimalAgent()
 
 
 @pytest.fixture
 def session():
-    tf.compat.v1.reset_default_graph()
-    with tf.compat.v1.Session() as s:
+    tf1.reset_default_graph()
+    with tf1.Session() as s:
         yield s
 
 
 @pytest.fixture
-def make_sum_writer(session, log_tensorboard, request):
+def make_summary_writer(session, log_tensorboard, request):
     def writer(data):
         if log_tensorboard:
             import shutil
@@ -283,46 +298,42 @@ def baseline():
 
 
 @pytest.fixture
-def np_policy(simple_env, plot_policy):
-    p = NpSwitchingPolicy(NpSwitchingPolicy.MatPlotter if plot_policy else NpSwitchingPolicy.NullPlotter)
+def linear_policy(switching_env, plot_policy):
+    p = LinearPolicy(LinearPolicy.MatPlotter if plot_policy else LinearPolicy.NullPlotter)
     yield p
     p.plot()
 
 
 @pytest.fixture
-def np_reinforce(np_policy, baseline):
-    return Reinforce(np_policy, 0.0, baseline)
+def reinforce_linear(linear_policy, baseline):
+    return Reinforce(linear_policy, 0.0, baseline)
 
 
 @pytest.fixture
-def np_reinforce_agent(np_reinforce):
-    return BatchAgent(np_reinforce)
+def policy_parameterized(session, switching_env, make_summary_writer):
+    return ParameterizedPolicy(session, switching_env.observation_space.shape[0], switching_env.action_space.n, make_summary_writer)
 
 
 @pytest.fixture
-def tf_policy(session, simple_env, make_sum_writer):
-    return TfSwitchingPolicy(session, simple_env.observation_space.shape[0], simple_env.action_space.n, make_sum_writer)
+def reinforce_parameterized(policy_parameterized, baseline, session):
+    return Reinforce(policy_parameterized, 0.99, baseline)
 
 
-@pytest.fixture
-def tf_reinforce(tf_policy, baseline, session):
-    return Reinforce(tf_policy, 0.99, baseline)
-
-
-@pytest.fixture
-def tf_reinforce_agent(tf_reinforce):
-    return BatchAgent(tf_reinforce)
+@pytest.fixture(params=['reinforce_linear', 'reinforce_parameterized'])
+def reinforce_agent(request):
+    alg = request.getfixturevalue(request.param)
+    return BatchAgent(alg)
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_random_agent_only_achieves_random_expected_total_return(simple_env, random_agent):
-    avg_return = run_sessions_with(simple_env, random_agent, 1000)
+def test_random_agent_only_achieves_random_expected_total_return(switching_env, random_agent):
+    avg_return = run_sessions_with(switching_env, random_agent, 1000)
     assert avg_return == approx(0.0, abs=2)
 
 
 def run_sessions_with(env, agent, num_sessions):
     avg_total_return = 0
-    for e in range(num_sessions):
+    for _ in range(num_sessions):
         obs = env.reset()
         done = False
         total_r = 0
@@ -335,21 +346,14 @@ def run_sessions_with(env, agent, num_sessions):
     return avg_total_return
 
 
-def test_deterministic_agent_achieves_max_return(simple_env, dt_agent, eval_length):
-    avg_return = run_sessions_with(simple_env, dt_agent, eval_length)
-    assert avg_return == approx(simple_env.max_total_return, rel=1)
+def test_optimal_agent_achieves_max_return(switching_env, optimal_agent, eval_length):
+    avg_return = run_sessions_with(switching_env, optimal_agent, eval_length)
+    assert avg_return == approx(switching_env.avg_total_return, rel=1)
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_np_reinforce_agent_achieves_near_optimal_solution(simple_env, np_reinforce_agent, train_length, eval_length):
-    run_sessions_with(simple_env, np_reinforce_agent, train_length)
-    avg_return = run_sessions_with(simple_env, np_reinforce_agent, eval_length)
-    assert avg_return == approx(simple_env.max_total_return, abs=5)
-
-
-@pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_tf_reinforce_agent_learns_near_optimal_solution(simple_env, tf_reinforce_agent, train_length,
+def test_tf_reinforce_agent_learns_near_optimal_solution(switching_env, reinforce_agent, train_length,
                                                          eval_length):
-    run_sessions_with(simple_env, tf_reinforce_agent, train_length)
-    avg_return = run_sessions_with(simple_env, tf_reinforce_agent, eval_length)
-    assert avg_return > simple_env.max_total_return * 0.9
+    run_sessions_with(switching_env, reinforce_agent, train_length)
+    avg_return = run_sessions_with(switching_env, reinforce_agent, eval_length)
+    assert avg_return == approx(switching_env.avg_total_return, abs=10)
