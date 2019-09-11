@@ -8,15 +8,15 @@ from reinforcement.trajectories import TrajectoryRecorder
 class AgentInterface(ABC):
     @abstractmethod
     def next_action(self, observation):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def signal(self, reward):
-        pass
+        raise NotImplementedError
 
     @abstractmethod
     def train(self):
-        pass
+        raise NotImplementedError
 
 
 class BatchAgent(AgentInterface):

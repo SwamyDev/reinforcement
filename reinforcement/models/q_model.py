@@ -11,7 +11,7 @@ class QModel(object, metaclass=ABCMeta):
 
     @abstractmethod
     def do_prediction(self, state):
-        pass
+        raise NotImplementedError
 
     def check_state(self, state):
         state_size = len(state)
@@ -28,7 +28,7 @@ class QModel(object, metaclass=ABCMeta):
 
     @abstractmethod
     def do_training(self, states, targets):
-        pass
+        raise NotImplementedError
 
     @staticmethod
     def check_target(target):

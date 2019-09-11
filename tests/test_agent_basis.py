@@ -1,9 +1,9 @@
 import numpy as np
 import pytest
 from pytest import approx
-from reinforcement.np_operations import one_hot
 
 from reinforcement.agents.basis import AgentInterface, BatchAgent
+from reinforcement.np_operations import one_hot
 from reinforcement.trajectories import TrajectoryError
 
 
@@ -121,3 +121,10 @@ def test_batch_agent_trains_on_trajectories_from_different_episodes(batch_agent,
     trajectory = episode.run()
     batch_agent.train()
     assert algorithm.received_trajectory == trajectory
+
+
+def test_trajectory_string_representation_follows_roughly_mathematical_notation(make_trajectory):
+    s = str(make_trajectory())
+    assert s == "pi -> 0 given: \n[[0. 0.]\n [0. 0.]\n [0. 0.]]\n R: 0.0\n" \
+                "pi -> 0 given: \n[[0. 0.]\n [0. 0.]\n [0. 0.]]\n R: 1.0\n" \
+                "pi -> 0 given: \n[[0. 0.]\n [0. 0.]\n [0. 0.]]\n R: 2.0"
