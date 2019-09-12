@@ -63,7 +63,7 @@ class SwitchingMDP:
         self.len_episode = 100
         self._reward = NormalDistribution(1, 0.1)
         self._penalty = NormalDistribution(-1, 0.1)
-        self.avg_total_return = self.len_episode * self._reward.mean
+        self.avg_max_reward = self.len_episode * self._reward.mean
         self._current_state = None
         self._episode = None
 
@@ -92,7 +92,7 @@ class SwitchingMDP:
     def __repr__(self):
         return f"SimpleDeterministic(action_space={repr(self.action_space)}, " \
                f"observation_space={repr(self.observation_space)}, len_episode={self.len_episode}," \
-               f"avg_total_return={repr(self.avg_total_return)})"
+               f"avg_total_return={repr(self.avg_max_reward)})"
 
 
 class RandomAgent(AgentInterface):
@@ -344,7 +344,7 @@ def run_sessions_with(env, agent, num_sessions):
 
 def test_optimal_agent_achieves_max_return(switching_env, optimal_agent, eval_length):
     avg_return = run_sessions_with(switching_env, optimal_agent, eval_length)
-    assert avg_return == approx(switching_env.avg_total_return, rel=1)
+    assert avg_return == approx(switching_env.avg_max_reward, rel=1)
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
@@ -352,4 +352,4 @@ def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_a
                                                       eval_length):
     run_sessions_with(switching_env, reinforce_agent, train_length)
     avg_return = run_sessions_with(switching_env, reinforce_agent, eval_length)
-    assert avg_return == approx(switching_env.avg_total_return, abs=10)
+    assert avg_return == approx(switching_env.avg_max_reward, abs=10)
