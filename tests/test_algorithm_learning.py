@@ -123,7 +123,7 @@ class OptimalAgent(AgentInterface):
 class LinearPolicy:
     def __init__(self, plotter, lr=1):
         self._lr = lr
-        self._m = np.random.normal(1, 0.001)  # high m avoids local maxima - use negative m for demonstration
+        self._m = np.random.normal(1, 0.001)  # high slope avoids local maxima - use negative m for demonstration
         self._probs = []
         self._get_signal = None
         self._plotter = plotter(self._m)
