@@ -165,7 +165,7 @@ class LinearPolicy:
             fig, (mp, lp, rp) = plt.subplots(3, 1)
             fig.suptitle("Numpy Agent")
             mp.plot(self._m_history)
-            mp.set_title("m")
+            mp.set_title("slope")
             lp.plot(self._signal_history)
             lp.set_title("signal")
             rp.plot(self._ret_med_history)
