@@ -44,7 +44,7 @@ class PolicySim(PolicySpy):
     def fit(self, trajectory):
         super().fit(trajectory)
         probabilities = np.array([self.estimate(o) for o in trajectory.observations])
-        self.received_loss_signal = self._calc(np_ops, trajectory.actions, probabilities, trajectory.returns)
+        self.received_signal = self._calc(np_ops, trajectory.actions, probabilities, trajectory.returns)
 
     def __repr__(self):
         return f"ApproximationSim() - {len(self._estimations)} estimations done"
