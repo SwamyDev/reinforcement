@@ -6,10 +6,10 @@ except ImportError:
 
 import numpy as np
 import pytest
+from pytest import approx
+
 import reinforcement.np_operations as np_ops
 import reinforcement.tf_operations as tf_ops
-
-from pytest import approx
 from reinforcement.agents.basis import BatchAgent, AgentInterface
 from reinforcement.algorithm.reinforce import Reinforce
 
@@ -92,7 +92,7 @@ class SwitchingMDP:
     def __repr__(self):
         return f"SimpleDeterministic(action_space={repr(self.action_space)}, " \
                f"observation_space={repr(self.observation_space)}, len_episode={self.len_episode}," \
-               f"max_total_return={repr(self.avg_total_return)})"
+               f"avg_total_return={repr(self.avg_total_return)})"
 
 
 class RandomAgent(AgentInterface):
@@ -125,18 +125,14 @@ class LinearPolicy:
         self._lr = lr
         self._m = np.random.normal(1, 0.001)  # high m avoids local maxima - use negative m for demonstration
         self._probs = []
-        self._get_loss = None
-
+        self._get_signal = None
         self._plotter = plotter(self._m)
-        self._m_history = [self._m]
-        self._ret_med_history = [0.0]
-        self._loss_history = [0]
 
     def set_signal_calc(self, signal_calc):
         def np_signal(acts, ps, rs):
             return signal_calc(np_ops, acts, ps, rs)
 
-        self._get_loss = np_signal
+        self._get_signal = np_signal
 
     def estimate(self, observation):
         y = (np.tanh(self._m * ((observation[0] * 2) - 1)) + 1) / 2
@@ -145,10 +141,10 @@ class LinearPolicy:
         return p
 
     def fit(self, trajectory):
-        loss = self._get_loss(trajectory.actions, np.array(self._probs, dtype=np.float), trajectory.returns)
-        self._m -= loss * self._lr
+        signal = self._get_signal(trajectory.actions, np.array(self._probs, dtype=np.float), trajectory.returns)
+        self._m += signal * self._lr
         self._probs.clear()
-        self._plotter.record(self._m, trajectory.returns, loss)
+        self._plotter.record(self._m, trajectory.returns, signal)
 
     def plot(self):
         self._plotter.show()
@@ -157,11 +153,11 @@ class LinearPolicy:
         def __init__(self, m):
             self._m_history = [m]
             self._ret_med_history = [0.0]
-            self._loss_history = [0]
+            self._signal_history = [0]
 
-        def record(self, m, returns, loss):
+        def record(self, m, returns, signal):
             self._m_history.append(m)
-            self._loss_history.append(loss)
+            self._signal_history.append(signal)
             self._ret_med_history.append(float(np.mean(returns)))
 
         def show(self):
@@ -170,8 +166,8 @@ class LinearPolicy:
             fig.suptitle("Numpy Agent")
             mp.plot(self._m_history)
             mp.set_title("m")
-            lp.plot(self._loss_history)
-            lp.set_title("loss")
+            lp.plot(self._signal_history)
+            lp.set_title("signal")
             rp.plot(self._ret_med_history)
             rp.set_title("median return")
             plt.show()
@@ -211,7 +207,7 @@ class ParameterizedPolicy:
         return tf1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
 
     def set_signal_calc(self, signal_calc):
-        loss = signal_calc(tf_ops, self._in_actions, self._out_probabilities, self._in_returns)
+        loss = -signal_calc(tf_ops, self._in_actions, self._out_probabilities, self._in_returns)
         self._train = tf1.train.GradientDescentOptimizer(learning_rate=self._lr).minimize(loss)
         self._session.run(tf1.global_variables_initializer())
         self._finish_logs(loss)
@@ -326,7 +322,7 @@ def reinforce_agent(request):
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_random_agent_only_achieves_random_expected_total_return(switching_env, random_agent):
+def test_random_agent_only_achieves_random_expected_return(switching_env, random_agent):
     avg_return = run_sessions_with(switching_env, random_agent, 1000)
     assert avg_return == approx(0.0, abs=2)
 
@@ -352,8 +348,8 @@ def test_optimal_agent_achieves_max_return(switching_env, optimal_agent, eval_le
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_tf_reinforce_agent_learns_near_optimal_solution(switching_env, reinforce_agent, train_length,
-                                                         eval_length):
+def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_agent, train_length,
+                                                      eval_length):
     run_sessions_with(switching_env, reinforce_agent, train_length)
     avg_return = run_sessions_with(switching_env, reinforce_agent, eval_length)
     assert avg_return == approx(switching_env.avg_total_return, abs=10)

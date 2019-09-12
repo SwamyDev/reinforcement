@@ -24,7 +24,9 @@ class TrajectoryBuilder:
         self._history.append((action, observation, reward))
 
     def to_trajectory(self):
-        return history_to_trajectory(self._history)
+        t = history_to_trajectory(self._history)
+        self._history.clear()
+        return t
 
 
 @pytest.fixture

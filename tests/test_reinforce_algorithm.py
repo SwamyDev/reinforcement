@@ -128,5 +128,5 @@ def test_fitting_the_approximation_uses_the_correct_loss(policy, baseline, make_
     baseline.set_estimates([1, 1])
     t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[3, 5])
     alg.optimize(t)
-    assert policy.received_loss_signal == -np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1,
-                                                    np.log(policy.estimate_for(t.observations[1])[0]) * -1])
+    assert policy.received_loss_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1,
+                                                   np.log(policy.estimate_for(t.observations[1])[0]) * -1])

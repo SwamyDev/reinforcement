@@ -27,7 +27,6 @@ def history_to_trajectory(history):
     if len(history) == 0:
         raise TrajectoryError("Attempt to create trajectory from empty history.\nRecord some data first.")
     ats, obs, rws = list(zip(*history))
-    history.clear()
     return Trajectory(np.array(ats), np.array(obs, dtype=np.float32), np.array(rws, dtype=np.float32))
 
 
@@ -45,7 +44,9 @@ class TrajectoryRecorder:
         self._history.append((self._action, self._observation, self._reward))
 
     def to_trajectory(self):
-        return history_to_trajectory(self._history)
+        t = history_to_trajectory(self._history)
+        self._history.clear()
+        return t
 
     class _Record:
         def __init__(self, recorder):

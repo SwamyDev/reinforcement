@@ -1,5 +1,6 @@
 try:
     import tensorflow as tf
+    import tensorflow.compat.v1 as tf1
 except ImportError:
     raise ImportError("reinforcement requires tensorflow 1.14")
 
@@ -51,7 +52,7 @@ class NeuralNetwork:
         :param input_size: size of the input vector
         :param seed: (optional) a seed used for initialization
         """
-        self._inputs = tf.compat.v1.placeholder(tf.float32, [None, input_size])
+        self._inputs = tf1.placeholder(tf.float32, [None, input_size])
         self._last_layer = self._inputs
         self._last_units = input_size
         self._layer_idx = 0
@@ -74,8 +75,8 @@ class NeuralNetwork:
         self._layer_idx += 1
 
     def _make_weights(self, init, units):
-        return tf.compat.v1.get_variable("W{}".format(self._layer_idx), shape=[self._last_units, units],
-                                         initializer=self._initializer(init))
+        return tf1.get_variable("W{}".format(self._layer_idx), shape=[self._last_units, units],
+                                initializer=self._initializer(init))
 
     def _initializer(self, init):
         func = self._initializers.get(init)

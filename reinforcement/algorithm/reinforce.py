@@ -12,7 +12,7 @@ class Reinforce:
     def _calc_signal(ops, in_actions, out_probs, in_returns):
         one_hot = ops.one_hot(in_actions, out_probs.shape[1])
         selected_prob = ops.reduce_sum(one_hot * out_probs, axis=1)
-        return -ops.reduce_mean(ops.log(selected_prob) * in_returns)
+        return ops.reduce_mean(ops.log(selected_prob) * in_returns)
 
     def sample(self, observation):
         return self._policy.estimate(observation)
