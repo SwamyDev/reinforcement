@@ -26,7 +26,7 @@ class PolicySim(PolicySpy):
         super().__init__()
         self._estimations = {}
         self.num_actions = 5
-        self.received_loss_signal = None
+        self.received_signal = None
 
     def estimate(self, obs):
         roll = np.random.uniform(size=(self.num_actions,))
@@ -122,11 +122,11 @@ def test_make_sure_baseline_estimation_is_done_before_model_fitting(policy, traj
     assert CALL_ORDER == [baseline.estimate, policy.fit]
 
 
-def test_fitting_the_approximation_uses_the_correct_loss(policy, baseline, make_trajectory):
+def test_fitting_the_approximation_calculates_the_correct_signal(policy, baseline, make_trajectory):
     policy.num_actions = 2
     alg = make_alg(policy, baseline, gamma=0.9)
     baseline.set_estimates([1, 1])
     t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[3, 5])
     alg.optimize(t)
-    assert policy.received_loss_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1,
-                                                   np.log(policy.estimate_for(t.observations[1])[0]) * -1])
+    assert policy.received_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1,
+                                              np.log(policy.estimate_for(t.observations[1])[0]) * -1])
