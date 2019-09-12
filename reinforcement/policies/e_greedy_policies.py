@@ -1,9 +1,6 @@
 import random
 
-try:
-    import numpy as np
-except ImportError:
-    raise ImportError("reinforcement requires numpy<1.17")
+import numpy as np
 
 
 class Policy:

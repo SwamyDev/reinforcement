@@ -1,51 +1,37 @@
-import itertools
-
 import numpy as np
 import pytest
 
+import reinforcement.np_operations as np_ops
 from reinforcement.algorithm.reinforce import Reinforce
-from reinforcement.trajectories import TrajectoryBuilder, Trajectories
+from reinforcement.np_operations import softmax
 
 CALL_ORDER = list()
-
-
-class OperationsSim:
-    @staticmethod
-    def reduce_mean(array):
-        return np.mean(array)
-
-    @staticmethod
-    def log(array):
-        return np.log(array).T
 
 
 class PolicySpy:
     def __init__(self):
         self.received_returns = None
-        self.received_loss_signal = None
         self._calc = None
 
     def set_signal_calc(self, calc):
         self._calc = calc
 
-    def fit(self, batch):
+    def fit(self, trajectory):
         CALL_ORDER.append(self.fit)
-        self.received_returns = list(batch.returns)
-        sim = OperationsSim()
-        losses = [self._calc(sim, a, r) for a, r in zip(batch.actions, batch.returns)]
-        self.received_loss_signal = np.mean(losses)
+        self.received_returns = list(trajectory.returns)
 
 
 class PolicySim(PolicySpy):
     def __init__(self):
         super().__init__()
         self._estimations = {}
-        self._calc = None
+        self.num_actions = 5
+        self.received_loss_signal = None
 
     def estimate(self, obs):
-        roll = np.random.uniform(size=(1, 5))
+        roll = np.random.uniform(size=(self.num_actions,))
         key = str(obs)
-        self._estimations[key] = np.exp(roll) / np.sum(np.exp(roll))
+        self._estimations[key] = softmax(roll)
         return self._estimations[key]
 
     def estimate_for(self, obs):
@@ -55,20 +41,18 @@ class PolicySim(PolicySpy):
             raise AssertionError(f"The requested observation has never used in any estimations:\n"
                                  f"{obs}\nEstimations: {self._estimations.keys()}")
 
+    def fit(self, trajectory):
+        super().fit(trajectory)
+        probabilities = np.array([self.estimate(o) for o in trajectory.observations])
+        self.received_loss_signal = self._calc(np_ops, trajectory.actions, probabilities, trajectory.returns)
+
     def __repr__(self):
         return f"ApproximationSim() - {len(self._estimations)} estimations done"
 
 
-class TrajectoriesStub(Trajectories):
-    def set_trajectories(self, *trajectories):
-        self._trajectories.clear()
-        for t in trajectories:
-            self.add(t)
-
-
 class BaselineStub:
-    def __init__(self, default_size):
-        self._estimates = np.random.uniform(default_size)
+    def __init__(self, size):
+        self._estimates = np.random.uniform(size)
 
     def set_estimates(self, estimates):
         self._estimates = estimates
@@ -94,27 +78,13 @@ def policy():
 
 
 @pytest.fixture
-def observation():
-    return np.random.uniform(size=(2, 3))
-
-
-@pytest.fixture
-def trajectories():
-    t = TrajectoriesStub()
-    t.set_trajectories(make_trajectory(), make_trajectory())
-    return t
+def trajectory(make_trajectory):
+    return make_trajectory()
 
 
 @pytest.fixture
 def baseline():
-    return BaselineSpy(default_size=(2, 3))
-
-
-def make_trajectory(actions=None, returns=None):
-    t = TrajectoryBuilder()
-    for a, r in zip(actions or itertools.repeat(np.array([0.5, 0.5])), returns or range(0, 3)):
-        t.add(np.zeros((3, 2)), a, r)
-    return t.to_trajectory()
+    return BaselineSpy(size=(3,))
 
 
 def test_sampling_returns_estimate_of_action_probabilities(policy, observation):
@@ -130,17 +100,11 @@ def assert_estimates(actual, expected):
     np.testing.assert_array_equal(actual, expected)
 
 
-def test_reinforce_calculated_correct_reward_signal(policy, trajectories, baseline):
+def test_reinforce_calculated_correct_reward_signal(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5)
-    baseline.set_estimates([
-        [2, 3, 4],
-        [5, 6]
-    ])
-    trajectories.set_trajectories(make_trajectory(returns=[3, 4, 5]),
-                                  make_trajectory(returns=[6, 7]))
-    alg.optimize(trajectories)
-    assert_signals(policy.received_returns, [normalized([4.25, 3.5, 1.0]),
-                                             normalized([4.50, 1.0])])
+    baseline.set_estimates([2, 3, 4])
+    alg.optimize(make_trajectory(returns=[3, 4, 5]))
+    assert_signals(policy.received_returns, normalized([4.25, 3.5, 1.0]))
 
 
 def normalized(advantages):
@@ -152,17 +116,17 @@ def assert_signals(actual, expected):
         np.testing.assert_array_equal(a, e)
 
 
-def test_make_sure_baseline_estimation_is_done_before_model_fitting(policy, trajectories, baseline):
+def test_make_sure_baseline_estimation_is_done_before_model_fitting(policy, trajectory, baseline):
     alg = make_alg(policy, baseline)
-    alg.optimize(trajectories)
+    alg.optimize(trajectory)
     assert CALL_ORDER == [baseline.estimate, policy.fit]
 
 
-def test_fitting_the_approximation_uses_the_correct_loss(policy, trajectories, baseline):
+def test_fitting_the_approximation_uses_the_correct_loss(policy, baseline, make_trajectory):
+    policy.num_actions = 2
     alg = make_alg(policy, baseline, gamma=0.9)
-    baseline.set_estimates([[1, 1], [1, 1]])
-    trajectories.set_trajectories(make_trajectory(actions=[[0.2, 0.8], [0.9, 0.1]], returns=[3, 5]),
-                                  make_trajectory(actions=[[0.4, 0.6], [0.8, 0.2]], returns=[3, 5]))
-    alg.optimize(trajectories)
-    assert policy.received_loss_signal == np.mean([np.log([0.2, 0.8]) * 1, np.log([0.9, 0.1]) * -1,
-                                                   np.log([0.4, 0.6]) * 1, np.log([0.8, 0.2]) * -1])
+    baseline.set_estimates([1, 1])
+    t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[3, 5])
+    alg.optimize(t)
+    assert policy.received_loss_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1,
+                                                   np.log(policy.estimate_for(t.observations[1])[0]) * -1])
