@@ -26,9 +26,6 @@ class Records:
     def is_empty(self):
         return len(self._state_actions) == 0
 
-    def __iter__(self):
-        return self
-
     def __next__(self):
         self._rewards.popleft()
         return self._state_actions.popleft()

@@ -40,6 +40,11 @@ def test_scalar_state(table):
     assert table[3, 1] == 6
 
 
+def test_q_table_provides_learn_interface(table):
+    table.learn(3, 1, 6)
+    assert table[3, 1] == 6
+
+
 def test_setting_action_out_of_space_throws_exception(table):
     with pytest.raises(InvalidAction):
         unused = table[[2, 3], 0]
