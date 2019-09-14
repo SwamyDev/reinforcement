@@ -187,10 +187,13 @@ class LinearPolicy:
             pass
 
 
+def _log_2d_tensor_as_img(name, mat):
+    return tf1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
+
+
 class ParameterizedPolicy:
-    def __init__(self, session, obs_dims, num_actions, make_summary_writer, lr=10):
+    def __init__(self, session, obs_dims, num_actions, summary_writer, lr=10):
         self._session = session
-        self._make_summary_writer = make_summary_writer
         self._lr = lr
         self._in_actions = tf1.placeholder(shape=(None,), dtype=tf.uint8, name="actions")
         self._in_returns = tf1.placeholder(shape=(None,), dtype=tf.float32, name="returns")
@@ -201,14 +204,10 @@ class ParameterizedPolicy:
         self._train = None
 
         self._logs = [tf1.summary.scalar("mean_normalized_return", tf.reduce_mean(self._in_returns)),
-                      self._log_2d_tensor_as_img("theta", theta)]
+                      _log_2d_tensor_as_img("theta", theta)]
         self._log_summary = tf.no_op
-        self._summary_writer = None
-        self._cur_iteration = 0
-
-    @staticmethod
-    def _log_2d_tensor_as_img(name, mat):
-        return tf1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
+        self._summary_writer = summary_writer
+        self._cur_episode = 0
 
     def set_signal_calc(self, signal_calc):
         loss = -signal_calc(tf_ops, self._in_actions, self._out_probabilities, self._in_returns)
@@ -219,7 +218,6 @@ class ParameterizedPolicy:
     def _finish_logs(self, loss):
         self._logs.append(tf1.summary.scalar("loss", loss))
         self._log_summary = tf1.summary.merge(self._logs)
-        self._summary_writer = self._make_summary_writer(self._session.graph)
 
     def estimate(self, observation):
         return np.squeeze(
@@ -230,8 +228,8 @@ class ParameterizedPolicy:
                                    {self._in_observations: trajectory.observations,
                                     self._in_actions: trajectory.actions,
                                     self._in_returns: trajectory.returns})
-        self._summary_writer.add_summary(log, self._cur_iteration)
-        self._cur_iteration += 1
+        self._summary_writer.add_summary(log, self._cur_episode)
+        self._cur_episode += 1
 
 
 class FixedBaseline:
@@ -240,6 +238,32 @@ class FixedBaseline:
 
     def estimate(self, trj):
         return np.ones_like(trj.returns) * self.value
+
+
+class ValueBaseline:
+    def __init__(self, session, obs_dims, summary_writer, lr=0.1):
+        self._session = session
+        self._in_observations = tf1.placeholder(shape=(None, obs_dims), dtype=tf.float32, name="observations")
+        self._in_returns = tf1.placeholder(shape=(None,), dtype=tf.float32, name="returns")
+        nn = tf1.get_variable("nn", shape=(obs_dims, 1), dtype=tf.float32, initializer=tf.glorot_uniform_initializer())
+        self._out_prediction = tf.squeeze(tf.matmul(self._in_observations, nn))
+        loss = tf1.math.reduce_mean(tf.math.squared_difference(self._in_returns, self._out_prediction), name="mse_loss")
+        self._train = tf1.train.GradientDescentOptimizer(learning_rate=lr).minimize(loss)
+
+        self._summary_writer = summary_writer
+        logs = [tf1.summary.scalar("mean_baseline_return", tf.reduce_mean(self._in_returns)),
+                tf1.summary.scalar("baseline_loss", loss),
+                _log_2d_tensor_as_img("baseline_nn", nn)]
+        self._log_summary = tf1.summary.merge(logs)
+        self._cur_episode = 0
+
+    def estimate(self, trj):
+        p, _, log = self._session.run([self._out_prediction, self._train, self._log_summary],
+                                      {self._in_observations: trj.observations,
+                                       self._in_returns: trj.returns})
+        self._summary_writer.add_summary(log, self._cur_episode)
+        self._cur_episode += 1
+        return p
 
 
 @pytest.fixture
@@ -275,26 +299,36 @@ def session():
 
 
 @pytest.fixture
-def make_summary_writer(session, log_tensorboard, request):
-    def writer(data):
+def summary_writer(session, log_tensorboard, request):
+    def writer():
         if log_tensorboard:
             import shutil
             ld = f"{request.node.name}_log"
             shutil.rmtree(ld, ignore_errors=True)
-            return tf.summary.FileWriter(ld, data, session=session)
+            return tf.summary.FileWriter(ld, session=session)
         else:
             class _NoLog:
                 def add_summary(self, *args, **kwargs):
                     pass
 
+                def add_graph(self, *args, **kwargs):
+                    pass
+
             return _NoLog()
 
-    return writer
+    w = writer()
+    yield w
+    w.add_graph(session.graph)
 
 
 @pytest.fixture
 def baseline():
     return FixedBaseline(0.0)
+
+
+@pytest.fixture
+def value_baseline(session, switching_env, summary_writer):
+    return ValueBaseline(session, switching_env.observation_space.shape[0], summary_writer)
 
 
 @pytest.fixture
@@ -310,13 +344,13 @@ def reinforce_linear(linear_policy, baseline):
 
 
 @pytest.fixture
-def policy_parameterized(session, switching_env, make_summary_writer):
+def policy_parameterized(session, switching_env, summary_writer):
     return ParameterizedPolicy(session, switching_env.observation_space.shape[0], switching_env.action_space.n,
-                               make_summary_writer)
+                               summary_writer)
 
 
 @pytest.fixture
-def reinforce_parameterized(policy_parameterized, baseline, session):
+def reinforce_parameterized(policy_parameterized, baseline):
     return Reinforce(policy_parameterized, 0.99, baseline)
 
 
@@ -366,10 +400,14 @@ def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_a
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_reinforce_agent_considers_baseline_estimates(switching_env, reinforce_parameterized_agent, train_length,
-                                                      eval_length, baseline):
+def test_reinforce_agent_and_learning_baseline_is_robust_towards_variance(switching_env, policy_parameterized,
+                                                                          train_length, eval_length, value_baseline):
+    agent = make_agent(policy_parameterized, value_baseline)
     switching_env.adjust_signals(reward=1001, penalty=999)
-    baseline.value = 1000
-    run_sessions_with(switching_env, reinforce_parameterized_agent, train_length)
-    avg_return = run_sessions_with(switching_env, reinforce_parameterized_agent, eval_length)
+    run_sessions_with(switching_env, agent, train_length)
+    avg_return = run_sessions_with(switching_env, agent, eval_length)
     assert avg_return == approx(switching_env.avg_max_reward, abs=10)
+
+
+def make_agent(policy, baseline):
+    return BatchAgent(Reinforce(policy, 0.99, baseline))
