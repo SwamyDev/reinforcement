@@ -102,13 +102,14 @@ def assert_estimates(actual, expected):
 
 def test_reinforce_calculated_correct_reward_signal(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5)
-    baseline.set_estimates([2, 3, 4])
-    alg.optimize(make_trajectory(returns=[3, 4, 5]))
-    assert_signals(policy.received_returns, normalized([4.25, 3.5, 1.0]))
+    baseline.set_estimates([2.0, 3.0, 4.0])
+    alg.optimize(make_trajectory(returns=[3.0, 4.0, 5.0]))
+    assert_signals(policy.received_returns, normalized([1.75, 1.5, 1.0]))
 
 
 def normalized(advantages):
-    return (np.array(advantages, dtype=np.float32) - np.mean(advantages)) / (np.std(advantages) + 1e-8)
+    a = np.array(advantages, dtype=np.float32)
+    return (a - np.mean(a)) / (np.std(a) + 1e-8)
 
 
 def assert_signals(actual, expected):
@@ -125,8 +126,8 @@ def test_make_sure_baseline_estimation_is_done_before_model_fitting(policy, traj
 def test_fitting_the_approximation_calculates_the_correct_signal(policy, baseline, make_trajectory):
     policy.num_actions = 2
     alg = make_alg(policy, baseline, gamma=0.9)
-    baseline.set_estimates([1, 1])
-    t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[3, 5])
+    baseline.set_estimates([2.0, 6.0])
+    t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[3.0, 5.0])
     alg.optimize(t)
-    assert policy.received_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1,
-                                              np.log(policy.estimate_for(t.observations[1])[0]) * -1])
+    assert policy.received_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1.0,
+                                              np.log(policy.estimate_for(t.observations[1])[0]) * -1.0])

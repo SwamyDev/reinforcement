@@ -61,11 +61,15 @@ class SwitchingMDP:
         self.action_space = Discrete(2)
         self.observation_space = BinaryBox()
         self.len_episode = 100
-        self._reward = NormalDistribution(1, 0.1)
-        self._penalty = NormalDistribution(-1, 0.1)
-        self.avg_max_reward = self.len_episode * self._reward.mean
+        self.adjust_signals(reward=1, penalty=-1)
         self._current_state = None
         self._episode = None
+
+    # noinspection PyAttributeOutsideInit
+    def adjust_signals(self, reward, penalty):
+        self._reward = NormalDistribution(reward, 0.1)
+        self._penalty = NormalDistribution(penalty, 0.1)
+        self.avg_max_reward = self.len_episode * self._reward.mean
 
     def reset(self):
         self._episode = 0
@@ -192,7 +196,7 @@ class ParameterizedPolicy:
         self._in_returns = tf1.placeholder(shape=(None,), dtype=tf.float32, name="returns")
         self._in_observations = tf1.placeholder(shape=(None, obs_dims), dtype=tf.float32, name="observations")
         theta = tf1.get_variable("theta", shape=(obs_dims, num_actions), dtype=tf.float32,
-                                          initializer=tf.glorot_uniform_initializer())
+                                 initializer=tf.glorot_uniform_initializer())
         self._out_probabilities = tf.nn.softmax(tf.matmul(self._in_observations, theta))
         self._train = None
 
@@ -307,7 +311,8 @@ def reinforce_linear(linear_policy, baseline):
 
 @pytest.fixture
 def policy_parameterized(session, switching_env, make_summary_writer):
-    return ParameterizedPolicy(session, switching_env.observation_space.shape[0], switching_env.action_space.n, make_summary_writer)
+    return ParameterizedPolicy(session, switching_env.observation_space.shape[0], switching_env.action_space.n,
+                               make_summary_writer)
 
 
 @pytest.fixture
@@ -319,6 +324,11 @@ def reinforce_parameterized(policy_parameterized, baseline, session):
 def reinforce_agent(request):
     alg = request.getfixturevalue(request.param)
     return BatchAgent(alg)
+
+
+@pytest.fixture
+def reinforce_parameterized_agent(reinforce_parameterized):
+    return BatchAgent(reinforce_parameterized)
 
 
 @pytest.mark.flaky(reruns=2, reruns_delay=3)
@@ -352,4 +362,14 @@ def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_a
                                                       eval_length):
     run_sessions_with(switching_env, reinforce_agent, train_length)
     avg_return = run_sessions_with(switching_env, reinforce_agent, eval_length)
+    assert avg_return == approx(switching_env.avg_max_reward, abs=10)
+
+
+@pytest.mark.flaky(reruns=2, reruns_delay=3)
+def test_reinforce_agent_considers_baseline_estimates(switching_env, reinforce_parameterized_agent, train_length,
+                                                      eval_length, baseline):
+    switching_env.adjust_signals(reward=1001, penalty=999)
+    baseline.value = 1000
+    run_sessions_with(switching_env, reinforce_parameterized_agent, train_length)
+    avg_return = run_sessions_with(switching_env, reinforce_parameterized_agent, eval_length)
     assert avg_return == approx(switching_env.avg_max_reward, abs=10)

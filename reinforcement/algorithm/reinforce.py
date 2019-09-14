@@ -23,11 +23,11 @@ class Reinforce:
 
     def _update_rewards_to_return_signals(self, trajectory):
         bases = self._baseline.estimate(trajectory)
+        trajectory.returns -= bases
         trj_len = len(trajectory)
         for tp in range(trj_len, 0, -1):
             prev = trajectory.returns[tp] if tp < trj_len else 0
             trajectory.returns[tp - 1] += self._gamma * prev
-        trajectory.returns -= bases
         self._normalize(trajectory.returns)
 
     @staticmethod
