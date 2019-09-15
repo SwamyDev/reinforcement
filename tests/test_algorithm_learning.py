@@ -161,28 +161,31 @@ def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_a
     assert avg_return == approx(switching_env.avg_max_reward, abs=10)
 
 
-@pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_reinforce_agent_and_learning_baseline_is_robust_towards_variance(switching_env, reinforce_agent_prefab,
+@pytest.mark.flaky(reruns=1, reruns_delay=1)
+def test_reinforce_agent_has_reduced_learning_without_baseline_and_high_variance_rewards(one_dim_walk_env,
+                                                                                         reinforce_agent_prefab,
+                                                                                         train_length,
+                                                                                         eval_length):
+    reinforce_agent_prefab.setup_for(one_dim_walk_env)
+    reinforce_agent_prefab.alg_prefab.gamma = 1
+
+    agent = reinforce_agent_prefab.make()
+    run_sessions_with(one_dim_walk_env, agent, 1000)
+    avg_return = run_sessions_with(one_dim_walk_env, agent, 100)
+
+    assert avg_return == approx(one_dim_walk_env.avg_min_reward, abs=0.3)
+
+
+@pytest.mark.flaky(reruns=1, reruns_delay=1)
+def test_reinforce_agent_and_learning_baseline_is_robust_towards_variance(one_dim_walk_env, reinforce_agent_prefab,
                                                                           value_baseline_prefab, train_length,
                                                                           eval_length):
     reinforce_agent_prefab.alg_prefab.baseline_prefab = value_baseline_prefab
-    reinforce_agent_prefab.alg_prefab.gamma = 0
-    agent = reinforce_agent_prefab.make()
-    switching_env.adjust_signals(reward=1001, penalty=999)
-    run_sessions_with(switching_env, agent, train_length)
-    avg_return = run_sessions_with(switching_env, agent, eval_length)
-    assert avg_return == approx(switching_env.avg_max_reward, abs=10)
-
-
-@pytest.mark.flaky(reruns=2, reruns_delay=3)
-def test_reinforce_agent_propagates_value_estimates_back(one_dim_walk_env, reinforce_agent_prefab,
-                                                         value_baseline_prefab):
-    reinforce_agent_prefab.alg_prefab.baseline_prefab = value_baseline_prefab
     reinforce_agent_prefab.setup_for(one_dim_walk_env)
     reinforce_agent_prefab.alg_prefab.gamma = 1
-    reinforce_agent_prefab.alg_prefab.num_train_trajectories = 10
     agent = reinforce_agent_prefab.make()
 
     run_sessions_with(one_dim_walk_env, agent, 1000)
     avg_return = run_sessions_with(one_dim_walk_env, agent, 100)
-    assert avg_return == approx(one_dim_walk_env.avg_max_reward, abs=0.05)
+
+    assert avg_return == approx(one_dim_walk_env.avg_max_reward, abs=0.3)

@@ -35,9 +35,9 @@ class Reinforce:
         for tp in range(trj_len, 0, -1):
             prev = trajectory.returns[tp] if tp < trj_len else 0
             trajectory.returns[tp - 1] += self._gamma * prev
-        self._normalize(trajectory.returns)
         bases = self._baseline.estimate(trajectory)
         trajectory.advantages = trajectory.returns - bases
+        self._normalize(trajectory.advantages)
 
     @staticmethod
     def _normalize(rs):

@@ -72,23 +72,28 @@ def _log_2d_tensor_as_img(name, mat):
     return tf1.summary.image(name, tf.reshape(mat, shape=(1, mat.shape[0].value, mat.shape[1].value, 1)))
 
 
+INDEX = 0
+
+
 class ParameterizedPolicy:
     def __init__(self, session, obs_dims, num_actions, summary_writer, lr=10):
+        global INDEX
         self._session = session
         self._lr = lr
         self._in_actions = tf1.placeholder(shape=(None,), dtype=tf.uint8, name="actions")
         self._in_returns = tf1.placeholder(shape=(None,), dtype=tf.float32, name="returns")
         self._in_observations = tf1.placeholder(shape=(None, obs_dims), dtype=tf.float32, name="observations")
-        theta = tf1.get_variable("theta", shape=(obs_dims, num_actions), dtype=tf.float32,
+        theta = tf1.get_variable(f"theta_{INDEX}", shape=(obs_dims, num_actions), dtype=tf.float32,
                                  initializer=tf.glorot_uniform_initializer())
         self._out_probabilities = tf.nn.softmax(tf.matmul(self._in_observations, theta))
         self._train = None
 
-        self._logs = [tf1.summary.scalar("mean_normalized_return", tf.reduce_mean(self._in_returns)),
-                      _log_2d_tensor_as_img("theta", theta)]
+        self._logs = [tf1.summary.scalar(f"mean_normalized_return_{INDEX}", tf.reduce_mean(self._in_returns)),
+                      _log_2d_tensor_as_img(f"theta_{INDEX}", theta)]
         self._log_summary = tf.no_op
         self._summary_writer = summary_writer
         self._cur_episode = 0
+        INDEX += 1
 
     def set_signal_calc(self, signal_calc):
         loss = -signal_calc(tf_ops, self._in_actions, self._out_probabilities, self._in_returns)

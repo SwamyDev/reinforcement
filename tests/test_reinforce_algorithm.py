@@ -43,7 +43,7 @@ class PolicySim(PolicySpy):
     def fit(self, trajectory):
         super().fit(trajectory)
         probabilities = np.array([self.estimate(o) for o in trajectory.observations])
-        self.received_signal = self._calc(np_ops, trajectory.actions, probabilities, trajectory.returns)
+        self.received_signal = self._calc(np_ops, trajectory.actions, probabilities, trajectory.advantages)
 
     def __repr__(self):
         return f"ApproximationSim() - {len(self._estimations)} estimations done"
@@ -54,7 +54,7 @@ class BaselineStub:
         self._estimates = np.random.uniform(size)
 
     def set_estimates(self, estimates):
-        self._estimates = estimates
+        self._estimates = np.array(estimates, dtype=np.float32)
 
     def estimate(self, _):
         return self._estimates
@@ -108,9 +108,9 @@ def assert_estimates(actual, expected):
 
 def test_that_reinforce_adds_correct_advantages_to_trajectory(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5)
-    baseline.set_estimates(normalized([2.0, 3.0, 4.0]))
+    baseline.set_estimates([2.0, 3.0, 4.0])
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
-    assert_signals(policy.received_advantages, normalized([2.75, 3.5, 3.0]) - normalized([2.0, 3.0, 4.0]))
+    assert_signals(policy.received_advantages, normalized([0.75, 0.5, -1.0]))
 
 
 def normalized(values):
@@ -123,10 +123,10 @@ def assert_signals(actual, expected):
         np.testing.assert_array_equal(a, e)
 
 
-def test_that_reinforce_passes_normalized_accumulated_returns_to_baseline(policy, baseline, make_trajectory):
+def test_that_reinforce_passes_accumulated_returns_to_baseline(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5)
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
-    assert_estimates(baseline.received_returns, normalized([2.75, 3.5, 3.0]))
+    assert_estimates(baseline.received_returns, [2.75, 3.5, 3.0])
 
 
 def test_reinforce_does_not_fit_policy_and_baseline_until_trajectory_batch_is_full(policy, baseline, make_trajectory):
@@ -139,7 +139,7 @@ def test_reinforce_fits_baseline_on_concatenated_trajectory_batch_returns(policy
     alg = make_alg(policy, baseline, gamma=0.5, num_train_trjaectories=2)
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
     alg.optimize(make_trajectory(returns=[4.0, 3.0, 2.0]))
-    assert_signals(baseline.fit_onto, concat(normalized([2.75, 3.5, 3.0]), normalized([6.0, 4.0, 2.0])))
+    assert_signals(baseline.fit_onto, concat([2.75, 3.5, 3.0], [6.0, 4.0, 2.0]))
 
 
 def concat(*args):
@@ -148,11 +148,10 @@ def concat(*args):
 
 def test_reinforce_fits_policy_on_concatenated_trajectory_batch_advantages(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5, num_train_trjaectories=2)
-    baseline.set_estimates(normalized([2.0, 3.0, 4.0]))
+    baseline.set_estimates([2.0, 3.0, 4.0])
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
     alg.optimize(make_trajectory(returns=[4.0, 3.0, 2.0]))
-    assert_signals(policy.fit_onto, concat(normalized([2.75, 3.5, 3.0]) - normalized([2.0, 3.0, 4.0]),
-                                           normalized([6.0, 4.0, 2.0]) - normalized([2.0, 3.0, 4.0])))
+    assert_signals(policy.fit_onto, concat(normalized([0.75, 0.5, -1.0]), normalized([4.0, 1.0, -2.0])))
 
 
 def test_reinforce_uses_clean_trajectory_batches(policy, baseline, make_trajectory):
@@ -167,9 +166,9 @@ def test_reinforce_uses_clean_trajectory_batches(policy, baseline, make_trajecto
 
 def test_fitting_the_approximation_calculates_the_correct_signal(policy, baseline, make_trajectory):
     policy.num_actions = 2
-    alg = make_alg(policy, baseline, gamma=0.9)
-    baseline.set_estimates([2.0, 6.0])
-    t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[3.0, 5.0])
+    alg = make_alg(policy, baseline, gamma=0.5)
+    baseline.set_estimates([-2.0, 2.0])
+    t = make_trajectory(actions=[1, 0], observations=[[0], [1]], returns=[2.0, 4.0])
     alg.optimize(t)
     assert policy.received_signal == np.mean([np.log(policy.estimate_for(t.observations[0])[1]) * 1.0,
                                               np.log(policy.estimate_for(t.observations[1])[0]) * -1.0])

@@ -48,14 +48,14 @@ class SwitchingMDP:
         self.action_space = Discrete(2)
         self.observation_space = BinaryBox()
         self.len_episode = 100
-        self.adjust_signals(reward=1, penalty=-1)
+        self.adjust_signals(reward=1, penalty=-1, std=0.1)
         self._current_state = None
         self._episode = None
 
     # noinspection PyAttributeOutsideInit
-    def adjust_signals(self, reward, penalty):
-        self._reward = NormalDistribution(reward, 0.1)
-        self._penalty = NormalDistribution(penalty, 0.1)
+    def adjust_signals(self, reward, penalty, std):
+        self._reward = NormalDistribution(reward, std)
+        self._penalty = NormalDistribution(penalty, std)
         self.avg_max_reward = self.len_episode * self._reward.mean
 
     def reset(self):
@@ -90,15 +90,13 @@ class OneDimWalkMDP:
     def __init__(self):
         self.action_space = Discrete(2)
         self.observation_space = Box(shape=(7, 1))
-        self.adjust_signals(signal=1)
-        self._max_len = 20
+        self._max_len = 7 * 2
+        self._reward = 1
+        self._penalty = -1
+        self.avg_max_reward = self._reward - (self.observation_space.shape[0] // 2) + 1
+        self.avg_min_reward = self._penalty * self._max_len
         self._current_position = None
         self._episode = None
-
-    # noinspection PyAttributeOutsideInit
-    def adjust_signals(self, signal):
-        self._reward = signal
-        self.avg_max_reward = self._reward - (self.observation_space.shape[0] // 2) + 1
 
     def reset(self):
         self._episode = 0
@@ -117,7 +115,8 @@ class OneDimWalkMDP:
 
         if self._current_position < 0:
             self._current_position = 0
-        return self._make_state(), self._reward if self._is_right_most() else -1, self._is_done(), None
+        r = self._reward if self._is_right_most() else self._penalty
+        return self._make_state(), r, self._is_done(), None
 
     @staticmethod
     def _is_move_left(action):
