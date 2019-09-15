@@ -2,7 +2,9 @@ import numpy as np
 
 
 class Trajectory:
-    def __init__(self, actions, observations, returns):
+    ATTRIBUTES_TO_ADD = ['observations', 'actions', 'returns', 'advantages']
+
+    def __init__(self, actions=None, observations=None, returns=None):
         self.observations = observations
         self.actions = actions
         self.returns = returns
@@ -14,6 +16,16 @@ class Trajectory:
         return np.array_equal(self.actions, other.actions) and \
                np.array_equal(self.observations, other.observations) and \
                np.array_equal(self.returns, other.returns)
+
+    def __add__(self, other):
+        for atr in self.ATTRIBUTES_TO_ADD:
+            lhs = getattr(self, atr, None)
+            rhs = getattr(other, atr, None)
+            if lhs is not None and rhs is not None:
+                setattr(self, atr, np.concatenate([lhs, rhs]))
+            elif lhs is None:
+                setattr(self, atr, rhs)
+        return self
 
     def __repr__(self):
         return f"Trajectory:\n{str(self)}"

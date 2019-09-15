@@ -1,12 +1,16 @@
 import numpy as np
 
+from reinforcement.trajectories import Trajectory
+
 
 class Reinforce:
-    def __init__(self, policy, gamma, baseline):
+    def __init__(self, policy, gamma, baseline, num_train_trajectories=100):
         self._policy = policy
         self._gamma = gamma
         self._baseline = baseline
         self._policy.set_signal_calc(self._calc_signal)
+        self._trajectories = list()
+        self._num_train_trajectories = num_train_trajectories
 
     @staticmethod
     def _calc_signal(ops, in_actions, out_probs, in_returns):
@@ -19,16 +23,21 @@ class Reinforce:
 
     def optimize(self, trajectory):
         self._update_rewards_to_return_signals(trajectory)
-        self._policy.fit(trajectory)
+        self._trajectories.append(trajectory)
+        if len(self._trajectories) == self._num_train_trajectories:
+            total = sum(self._trajectories, Trajectory())
+            self._baseline.fit(total)
+            self._policy.fit(total)
+            self._trajectories.clear()
 
     def _update_rewards_to_return_signals(self, trajectory):
-        bases = self._baseline.estimate(trajectory)
-        trajectory.returns -= bases
         trj_len = len(trajectory)
         for tp in range(trj_len, 0, -1):
             prev = trajectory.returns[tp] if tp < trj_len else 0
             trajectory.returns[tp - 1] += self._gamma * prev
         self._normalize(trajectory.returns)
+        bases = self._baseline.estimate(trajectory)
+        trajectory.advantages = trajectory.returns - bases
 
     @staticmethod
     def _normalize(rs):

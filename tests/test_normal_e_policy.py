@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 
 from reinforcement.policies.e_greedy_policies import NormalEpsilonGreedyPolicy
-from tests.common_doubles import MockFilter, Call
-from tests.q_doubles import QFunctionWrapper
+from tests.aux.common_doubles import MockFilter, Call
+from tests.aux.q_doubles import QFunctionWrapper
 
 STATE_A = [0]
 STATE_B = [1]
