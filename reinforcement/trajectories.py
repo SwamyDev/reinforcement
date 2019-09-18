@@ -52,7 +52,6 @@ def concatenate(trajectories):
     return reduce(concat_two, trajectories)
 
 
-
 class TrajectoryRecorder:
     def __init__(self):
         self._history = list()

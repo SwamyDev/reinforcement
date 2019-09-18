@@ -38,16 +38,14 @@ class ValueBaseline:
         self._cur_episode = 0
 
     def estimate(self, trj):
-        r = trj.returns - np.ones_like(trj.returns)
         return self._session.run(self._out_prediction,
                                  {self._in_observations: trj.observations,
-                                  self._in_returns: r})
+                                  self._in_returns: trj.returns})
 
     def fit(self, trj):
-        r = trj.returns - np.ones_like(trj.returns)
         _, log = self._session.run([self._train, self._log_summary],
                                    {self._in_observations: trj.observations,
-                                    self._in_returns: r})
+                                    self._in_returns: trj.returns})
         self._summary_writer.add_summary(log, self._cur_episode)
         self._cur_episode += 1
 
