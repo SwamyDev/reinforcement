@@ -6,7 +6,7 @@ import numpy as np
 class Trajectory:
     ATTRIBUTES_TO_CONCATENATE = ['observations', 'actions', 'returns', 'advantages']
 
-    def __init__(self, actions=None, observations=None, returns=None):
+    def __init__(self, actions, observations, returns):
         self.observations = observations
         self.actions = actions
         self.returns = returns
@@ -25,8 +25,6 @@ class Trajectory:
             rhs = getattr(other, atr, None)
             if lhs is not None and rhs is not None:
                 setattr(self, atr, np.concatenate([lhs, rhs]))
-            elif lhs is None:
-                setattr(self, atr, rhs)
         return self
 
     def __repr__(self):
