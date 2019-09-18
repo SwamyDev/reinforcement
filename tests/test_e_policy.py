@@ -1,9 +1,10 @@
 import random
+
 import pytest
 
 from reinforcement.policies.e_greedy_policies import EpsilonGreedyPolicy
-from tests.common_doubles import MockFilter, Call
-from tests.q_doubles import QFunctionWrapper
+from tests.aux.common_doubles import MockFilter, Call
+from tests.aux.q_doubles import QFunctionWrapper
 
 
 def make_policy(epsilon, filter=None):

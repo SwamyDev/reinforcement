@@ -1,7 +1,11 @@
+from functools import reduce
+
 import numpy as np
 
 
 class Trajectory:
+    ATTRIBUTES_TO_CONCATENATE = ['observations', 'actions', 'returns', 'advantages']
+
     def __init__(self, actions, observations, returns):
         self.observations = observations
         self.actions = actions
@@ -14,6 +18,14 @@ class Trajectory:
         return np.array_equal(self.actions, other.actions) and \
                np.array_equal(self.observations, other.observations) and \
                np.array_equal(self.returns, other.returns)
+
+    def concatenate(self, other):
+        for atr in self.ATTRIBUTES_TO_CONCATENATE:
+            lhs = getattr(self, atr, None)
+            rhs = getattr(other, atr, None)
+            if lhs is not None and rhs is not None:
+                setattr(self, atr, np.concatenate([lhs, rhs]))
+        return self
 
     def __repr__(self):
         return f"Trajectory:\n{str(self)}"
@@ -28,6 +40,14 @@ def history_to_trajectory(history):
         raise TrajectoryError("Attempt to create trajectory from empty history.\nRecord some data first.")
     ats, obs, rws = list(zip(*history))
     return Trajectory(np.array(ats), np.array(obs, dtype=np.float32), np.array(rws, dtype=np.float32))
+
+
+def concatenate(trajectories):
+    def concat_two(lhs, rhs):
+        lhs.concatenate(rhs)
+        return lhs
+
+    return reduce(concat_two, trajectories)
 
 
 class TrajectoryRecorder:
