@@ -1,9 +1,13 @@
+try:
+    import tensorflow as tf
+    import tensorflow.compat.v1 as tf1
+except ImportError:
+    raise ImportError("reinforcement requires tensorflow 1.14")
+
 import itertools
 
 import numpy as np
 import pytest
-import tensorflow as tf
-from tensorflow._api.v1.compat import v1 as tf1
 
 from reinforcement.trajectories import history_to_trajectory
 

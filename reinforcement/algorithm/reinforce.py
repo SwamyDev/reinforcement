@@ -1,6 +1,6 @@
 import numpy as np
 
-from reinforcement.trajectories import Trajectory
+from reinforcement.trajectories import concatenate
 
 
 class Reinforce:
@@ -25,7 +25,7 @@ class Reinforce:
         self._update_rewards_to_return_signals(trajectory)
         self._trajectories.append(trajectory)
         if len(self._trajectories) == self._num_train_trajectories:
-            total = sum(self._trajectories, Trajectory())
+            total = concatenate(self._trajectories)
             self._baseline.fit(total)
             self._policy.fit(total)
             self._trajectories.clear()
@@ -35,8 +35,7 @@ class Reinforce:
         for tp in range(trj_len, 0, -1):
             prev = trajectory.returns[tp] if tp < trj_len else 0
             trajectory.returns[tp - 1] += self._gamma * prev
-        bases = self._baseline.estimate(trajectory)
-        trajectory.advantages = trajectory.returns - bases
+        trajectory.advantages = trajectory.returns - self._baseline.estimate(trajectory)
         self._normalize(trajectory.advantages)
 
     @staticmethod

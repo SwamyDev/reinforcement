@@ -8,16 +8,14 @@ from reinforcement.np_operations import softmax
 
 class PolicySpy:
     def __init__(self):
-        self.received_advantages = None
-        self.fit_onto = None
+        self.fitted_onto = None
         self._calc = None
 
     def set_signal_calc(self, calc):
         self._calc = calc
 
     def fit(self, trajectory):
-        self.received_advantages = trajectory.advantages
-        self.fit_onto = self.received_advantages
+        self.fitted_onto = trajectory.advantages
 
 
 class PolicySim(PolicySpy):
@@ -66,16 +64,16 @@ class BaselineStub:
 class BaselineSpy(BaselineStub):
     def __init__(self, size):
         super().__init__(size)
-        self.received_returns = None
-        self.fit_onto = None
+        self.estimated_for = None
+        self.fitted_onto = None
 
     def estimate(self, trj):
-        self.received_returns = trj.returns
+        self.estimated_for = trj.returns
         return super().estimate(trj)
 
     def fit(self, trj):
         super().fit(trj)
-        self.fit_onto = trj.returns
+        self.fitted_onto = trj.returns
 
 
 @pytest.fixture
@@ -110,7 +108,7 @@ def test_that_reinforce_adds_correct_advantages_to_trajectory(policy, baseline, 
     alg = make_alg(policy, baseline, gamma=0.5)
     baseline.set_estimates([2.0, 3.0, 4.0])
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
-    assert_signals(policy.received_advantages, normalized([0.75, 0.5, -1.0]))
+    assert_signals(policy.fitted_onto, normalized([0.75, 0.5, -1.0]))
 
 
 def normalized(values):
@@ -126,20 +124,20 @@ def assert_signals(actual, expected):
 def test_that_reinforce_passes_accumulated_returns_to_baseline(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5)
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
-    assert_estimates(baseline.received_returns, [2.75, 3.5, 3.0])
+    assert_estimates(baseline.estimated_for, [2.75, 3.5, 3.0])
 
 
-def test_reinforce_does_not_fit_policy_and_baseline_until_trajectory_batch_is_full(policy, baseline, make_trajectory):
+def test_reinforce_does_not_fit_policy_and_baseline_until_trajectory_batch_is_filled(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, num_train_trjaectories=2)
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
-    assert not baseline.fit_onto and not policy.fit_onto
+    assert not baseline.fitted_onto and not policy.fitted_onto
 
 
 def test_reinforce_fits_baseline_on_concatenated_trajectory_batch_returns(policy, baseline, make_trajectory):
     alg = make_alg(policy, baseline, gamma=0.5, num_train_trjaectories=2)
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
     alg.optimize(make_trajectory(returns=[4.0, 3.0, 2.0]))
-    assert_signals(baseline.fit_onto, concat([2.75, 3.5, 3.0], [6.0, 4.0, 2.0]))
+    assert_signals(baseline.fitted_onto, concat([2.75, 3.5, 3.0], [6.0, 4.0, 2.0]))
 
 
 def concat(*args):
@@ -151,17 +149,22 @@ def test_reinforce_fits_policy_on_concatenated_trajectory_batch_advantages(polic
     baseline.set_estimates([2.0, 3.0, 4.0])
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
     alg.optimize(make_trajectory(returns=[4.0, 3.0, 2.0]))
-    assert_signals(policy.fit_onto, concat(normalized([0.75, 0.5, -1.0]), normalized([4.0, 1.0, -2.0])))
+    assert_signals(policy.fitted_onto, concat(normalized([0.75, 0.5, -1.0]), normalized([4.0, 1.0, -2.0])))
 
 
 def test_reinforce_uses_clean_trajectory_batches(policy, baseline, make_trajectory):
     baseline.set_estimates([0, 0, 0])
     alg = make_alg(policy, baseline, gamma=0.5, num_train_trjaectories=2)
-    for _ in range(2):
-        alg.optimize(make_trajectory())
+    fill_trajectory_batch(alg, make_trajectory)
     alg.optimize(make_trajectory(returns=[1.0, 2.0, 3.0]))
     alg.optimize(make_trajectory(returns=[4.0, 3.0, 2.0]))
-    assert_signals(policy.fit_onto, concat(normalized([2.75, 3.5, 3.0]), normalized([6.0, 4.0, 2.0])))
+    assert_signals(policy.fitted_onto, concat(normalized([2.75, 3.5, 3.0]), normalized([6.0, 4.0, 2.0])))
+
+
+def fill_trajectory_batch(alg, make_trajectory):
+    # noinspection PyProtectedMember
+    for _ in range(alg._num_train_trajectories):
+        alg.optimize(make_trajectory())
 
 
 def test_fitting_the_approximation_calculates_the_correct_signal(policy, baseline, make_trajectory):

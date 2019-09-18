@@ -1,6 +1,10 @@
+try:
+    import tensorflow as tf
+    import tensorflow.compat.v1 as tf1
+except ImportError:
+    raise ImportError("reinforcement requires tensorflow 1.14")
+
 import numpy as np
-import tensorflow as tf
-from tensorflow._api.v1.compat import v1 as tf1
 
 from tests.aux.policies import _log_2d_tensor_as_img
 
@@ -34,13 +38,13 @@ class ValueBaseline:
         self._cur_episode = 0
 
     def estimate(self, trj):
-        r = trj.returns - np.ones_like(trj.returns) * 0.1
+        r = trj.returns - np.ones_like(trj.returns)
         return self._session.run(self._out_prediction,
                                  {self._in_observations: trj.observations,
                                   self._in_returns: r})
 
     def fit(self, trj):
-        r = trj.returns - np.ones_like(trj.returns) * 0.1
+        r = trj.returns - np.ones_like(trj.returns)
         _, log = self._session.run([self._train, self._log_summary],
                                    {self._in_observations: trj.observations,
                                     self._in_returns: r})
