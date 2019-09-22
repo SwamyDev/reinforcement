@@ -127,7 +127,7 @@ def reinforce_parameterized_agent(reinforce_agent_prefab):
     return reinforce_agent_prefab.make()
 
 
-@pytest.mark.flaky(reruns=2, reruns_delay=3)
+@pytest.mark.flaky(reruns=2, reruns_delay=1)
 def test_random_agent_only_achieves_random_expected_return(switching_env, random_agent):
     avg_return = run_sessions_with(switching_env, random_agent, 1000)
     assert avg_return == approx(0.0, abs=2)
@@ -153,7 +153,7 @@ def test_optimal_agent_achieves_max_return(switching_env, optimal_agent, eval_le
     assert avg_return == approx(switching_env.avg_max_reward, rel=1)
 
 
-@pytest.mark.flaky(reruns=2, reruns_delay=3)
+@pytest.mark.flaky(reruns=2, reruns_delay=1)
 def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_agents, train_length,
                                                       eval_length):
     run_sessions_with(switching_env, reinforce_agents, train_length)
@@ -161,31 +161,33 @@ def test_reinforce_agents_learn_near_optimal_solution(switching_env, reinforce_a
     assert avg_return == approx(switching_env.avg_max_reward, abs=10)
 
 
-@pytest.mark.flaky(reruns=1, reruns_delay=1)
+@pytest.mark.stochastic(10, max_samples=100)
 def test_reinforce_agent_has_reduced_learning_without_baseline_and_high_variance_rewards(one_dim_walk_env,
                                                                                          reinforce_agent_prefab,
                                                                                          train_length,
-                                                                                         eval_length):
+                                                                                         eval_length, stochastic_run):
     reinforce_agent_prefab.setup_for(one_dim_walk_env)
     reinforce_agent_prefab.alg_prefab.gamma = 1
 
     agent = reinforce_agent_prefab.make()
-    run_sessions_with(one_dim_walk_env, agent, 1000)
-    avg_return = run_sessions_with(one_dim_walk_env, agent, 100)
+    run_sessions_with(one_dim_walk_env, agent, 600)
+    stochastic_run.record(run_sessions_with(one_dim_walk_env, agent, 10))
 
-    assert avg_return == approx(one_dim_walk_env.avg_min_reward, abs=0.3)
+    min_r = one_dim_walk_env.avg_min_reward
+    assert stochastic_run.count(result_equals=approx(min_r, abs=1)) >= int(len(stochastic_run) * 0.7)
 
 
-@pytest.mark.flaky(reruns=1, reruns_delay=1)
+@pytest.mark.stochastic(10, max_samples=100)
 def test_reinforce_agent_and_learning_baseline_is_robust_towards_variance(one_dim_walk_env, reinforce_agent_prefab,
                                                                           value_baseline_prefab, train_length,
-                                                                          eval_length):
+                                                                          eval_length, stochastic_run):
     reinforce_agent_prefab.alg_prefab.baseline_prefab = value_baseline_prefab
     reinforce_agent_prefab.setup_for(one_dim_walk_env)
     reinforce_agent_prefab.alg_prefab.gamma = 1
     agent = reinforce_agent_prefab.make()
 
-    run_sessions_with(one_dim_walk_env, agent, 1000)
-    avg_return = run_sessions_with(one_dim_walk_env, agent, 100)
+    run_sessions_with(one_dim_walk_env, agent, 300)
+    stochastic_run.record(run_sessions_with(one_dim_walk_env, agent, 10))
 
-    assert avg_return == approx(one_dim_walk_env.avg_max_reward, abs=0.3)
+    max_r = one_dim_walk_env.avg_max_reward
+    assert stochastic_run.count(result_equals=approx(max_r, abs=1)) >= int(len(stochastic_run) * 0.7)
