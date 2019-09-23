@@ -25,8 +25,11 @@ def pytest_addoption(parser):
 
 def pytest_configure(config):
     config.addinivalue_line(
-        "markers", "stochastic(sample_size): mark a test as stochastic running it `sample_size` times and providing "
-                   "access to statistical analysis of the runs via the injected `stochastic_run` fixture.")
+        "markers", "stochastic(sample_size, max_samples=None): mark a test as stochastic running it `sample_size` times"
+                   " and providing access to statistical analysis of the runs via the injected `stochastic_run` "
+                   "fixture. Optionally specify `max_samples`. By default it is equal to `sample_size`. If it is "
+                   "bigger, then additional samples are drawn if the test fails after taking `sample_size` samples, up"
+                   "to the specified `max_samples`. If it is smaller than `sample_size` it is capped to `sample_size`")
 
 
 class StochasticRunRecorder:
@@ -58,7 +61,7 @@ def pytest_runtest_protocol(item, nextitem):
 
     reports = None
     with _RECORDER.current_run():
-        max_n, n = _get_sample_range(m)
+        n, max_n = _get_sample_range(m)
         s = 0
         while s < n:
             item.ihook.pytest_runtest_logstart(nodeid=item.nodeid, location=item.location)
@@ -79,9 +82,9 @@ def _get_marker(item):
 
 
 def _get_sample_range(m):
-    n = m.kwargs.get('sample_size', m.args[0])
-    max_n = max(m.kwargs.get('max_samples', n), n)
-    return max_n, n
+    min_n = m.kwargs.get('sample_size', m.args[0])
+    max_n = max(m.kwargs.get('max_samples', min_n), min_n)
+    return min_n, max_n
 
 
 def _has_failed(reports):
