@@ -29,7 +29,7 @@ def pytest_configure(config):
                    " and providing access to statistical analysis of the runs via the injected `stochastic_run` "
                    "fixture. Optionally specify `max_samples`. By default it is equal to `sample_size`. If it is "
                    "bigger, then additional samples are drawn if the test fails after taking `sample_size` samples, up"
-                   "to the specified `max_samples`. If it is smaller than `sample_size` it is capped to `sample_size`")
+                   "to the specified `max_samples`. If it is smaller than `max_samples` it is capped to `sample_size`")
 
 
 class StochasticRunRecorder:
