@@ -80,7 +80,7 @@ if __name__ == "__main__":
     parser.add_argument('--lr-policy', type=float, default=50, help='learning rate of policy ANN')
     parser.add_argument('--lr-baseline', type=float, default=0.01, help='learning rate of baseline ANN')
     parser.add_argument('--render-frq', type=int, default=0, help='render every x episode')
-    parser.add_argument('--log-frq', type=int, default=0, help='log every x episode')
+    parser.add_argument('--log-frq', type=int, default=100, help='log every x episode')
 
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO)
