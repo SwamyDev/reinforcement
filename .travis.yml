@@ -5,6 +5,7 @@ install:
   - make install TARGET=test
 script:
   - pip install python-coveralls
+  - make doc
   - make coverage
 after_success:
 - coveralls

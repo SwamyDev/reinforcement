@@ -1,4 +1,4 @@
-.PHONY: help meta install clean test coverage
+.PHONY: help meta install clean test coverage doc
 
 
 TARGET ?= tf_cpu
@@ -16,6 +16,8 @@ help:
 	@echo "       run all reinforcement tests"
 	@echo "make coverage"
 	@echo "       run all reinforcement tests and produce coverage report"
+	@echo "make doc"
+	@echo "       update the documentation"
 
 
 meta:
@@ -40,4 +42,7 @@ test: clean
 
 coverage: clean
 	pip install pytest-cov
-	pytest --cov=reinforcement --cov-report term-missing
+	pytest --cov=reinforcement --cov-report term-missing --run-slow
+
+doc:
+	scripts/embedmd -w README.md
