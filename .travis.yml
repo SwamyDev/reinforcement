@@ -5,7 +5,7 @@ install:
   - make install TARGET=test
 script:
   - pip install python-coveralls
-  - make doc
+  - scripts/embedmd -d README.md
   - make coverage
 after_success:
 - coveralls

@@ -50,7 +50,6 @@ def _run_episode(env, episode, agent, report):
         agent.signal(r)
         reward += r
 
-    agent.train()
     return reward
 ```
 
