@@ -12,6 +12,8 @@ pip install reinforcement
 ## Example Implementation
 This section demonstrates how to implement a REINFORCE agent and benchmark it on the 'CartPole' gym environment.
 
+You can find the full implementation in [examples/reinforce.py](example/reinforce.py). The [example folder](example/) also contains some additional utility classes and functions that are used in the implementation.
+
 [embedmd]:# (example/reinforce.py python /def run_reinforce/ /env.close\(\)/)
 ```python
 def run_reinforce(config):
@@ -55,8 +57,6 @@ def _run_episode(env, episode, agent, report):
 ```
 
 This function performs a run through a single episode of the environment. Observations of the environment are passed to the agent's `next_action` interface function. The resulting estimated actions are passed again to the environment, leading to the next observation and a reward signal. The agent is then trained at the end of the episode because we want to train it on whole trajectories. It also contains a call to `env.render()` to visualize some runs. 
-
-You can find the full implementation in [examples/reinforce.py](example/reinforce.py). The [example folder](example/) also contains some additional utility classes and functions that are used in the implementation.
 
 ## Running an Example
 Running the REINFORCE agent example with default settings:
