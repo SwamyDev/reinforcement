@@ -25,8 +25,16 @@ def test_reinforce_example_closes_in_on_optimal_solution(examples):
 
 
 def _run(example, **kwargs):
-    args = [[f"--{k.replace('_', '-')}", str(v)] for k, v in kwargs.items()]
-    args = [a for pair in args for a in pair]
+    args = _to_args(kwargs)
     r = subprocess.run(['python', example] + args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     lines = r.stdout.decode('utf-8').splitlines()
-    return float(re.findall(r'[-+]?[0-9]*\.?[0-9]+', lines[-1])[-1])
+    return _parse_reward(lines[-1])
+
+
+def _to_args(kwargs):
+    args = [[f"--{k.replace('_', '-')}", str(v)] for k, v in kwargs.items()]
+    return [a for pair in args for a in pair]
+
+
+def _parse_reward(line):
+    return float(re.findall(r'[-+]?[0-9]*\.?[0-9]+', line)[-1])

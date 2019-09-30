@@ -1,16 +1,16 @@
 [![Build Status](https://travis-ci.org/SwamyDev/reinforcement.svg?branch=master)](https://travis-ci.org/SwamyDev/reinforcement) [![Coverage Status](https://coveralls.io/repos/github/SwamyDev/reinforcement/badge.svg?branch=master)](https://coveralls.io/github/SwamyDev/reinforcement?branch=master) [![PyPI version](https://badge.fury.io/py/reinforcement.svg)](https://badge.fury.io/py/reinforcement)
 
 # Reinforcement
-The reinforcement module aims to provide simple implementations for basic reinforcement learning algorithms, using Test Driven Development and other principles of Software Engineering in an attempt to minimize defects and improve reproducibility of these algorithms.
+The reinforcement package aims to provide simple implementations for basic reinforcement learning algorithms, using Test Driven Development and other principles of Software Engineering in an attempt to minimize defects and improve reproducibility. 
 
 ## Installation
-The library can simply be installed using pip:
+The library can be installed using pip:
 ```bash
 pip install reinforcement
 ```
 
 ## Example Implementation
-This section shows how to implement a REINFORCE agent and benchmark it on the 'CartPole' gym environment.
+This section demonstrates how to implement a REINFORCE agent and benchmark it on the 'CartPole' gym environment.
 
 [embedmd]:# (example/reinforce.py python /def run_reinforce/ /env.close\(\)/)
 ```python
@@ -25,7 +25,7 @@ def run_reinforce(config):
                 logger.info(reporter.report(episode, rewards))
     env.close()
 ```
-This is the main function setting up the boiler plate code, like creating the tensorflow session, logging reports, and creating the reinforce agent. The `Reporter` class is just a helper to make logging at a certain frequency more convenient
+This is the main function setting up the boiler plate code. It creates the tensorflow session, logs the progress, and creats the agent. The `Reporter` class is just a helper to make logging at a certain frequency more convenient
 
 [embedmd]:# (example/reinforce.py python /def _make_agent/ /return BatchAgent\(alg\)/)
 ```python
@@ -36,7 +36,7 @@ def _make_agent(config, session, env):
     return BatchAgent(alg)
 ```
 
-This is the factory function creating the REINFORCE agent. It uses a parameterized policy to learn and estimate proper actions and a parameterized baseline to calculate the advantage. The `BatchAgent` type records interactions between the agent and the environment as trajectories which are then used to optimize the policy and the baseline. The `NoLog` class is a Null-Object implementing the tensorboard `FileWriter` interface.
+The factory function `_make_agent` creates the REINFORCE agent object. It uses a parameterized policy and baseline to learn and estimate proper actions. In this case, both parameterizations are straightforward artificial neural networks with no hidden layer. Both have the same input layer, but the output layer of the policy is a softmax function, whereas the baseline outputs a single linear value. The `BatchAgent` type records trajectories (states, actions, rewards) which are then used to optimize the policy and the baseline. The `NoLog` class is a Null-Object implementing the TensorBoard `FileWriter` interface.
 
 [embedmd]:# (example/reinforce.py python /def _run_episode/ /return reward/)
 ```python
@@ -54,7 +54,7 @@ def _run_episode(env, episode, agent, report):
     return reward
 ```
 
-The actual meat of the implementation, implementing a run through an episode of the environment. The observations of the environment are passed to the `next_action` interface of the agent and the estimated actions of the agents are passed to the environment. The agent is then trained at the end of the episode, because we want to train it on whole trajectories.
+This function performs a run through a single episode of the environment. Observations of the environment are passed to the agent's `next_action` interface function. The resulting estimated actions are passed again to the environment, leading to the next observation and a reward signal. The agent is then trained at the end of the episode because we want to train it on whole trajectories. It also contains a call to `env.render()` to visualize some runs. 
 
 You can find the full implementation in [examples/reinforce.py](example/reinforce.py). The [example folder](example/) also contains some additional utility classes and functions that are used in the implementation.
 
@@ -67,7 +67,7 @@ python example/reinforce.py
 After a few 1000 episodes it should get very close to the highest achievable reward:
 ```
 ...
-$ INFO:__main__:Episode 2800: reward=200.0; mean reward of last 100 episodes: 199.71
-$ INFO:__main__:Episode 2900: reward=200.0; mean reward of last 100 episodes: 199.36
-$ INFO:__main__:Episode 3000: reward=200.0; mean reward of last 100 episodes: 198.09
+INFO:__main__:Episode 2800: reward=200.0; mean reward of last 100 episodes: 199.71
+INFO:__main__:Episode 2900: reward=200.0; mean reward of last 100 episodes: 199.36
+INFO:__main__:Episode 3000: reward=200.0; mean reward of last 100 episodes: 198.09
 ```
