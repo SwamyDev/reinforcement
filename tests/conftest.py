@@ -1,3 +1,5 @@
+from example.log_utils import NoLog
+
 try:
     import tensorflow as tf
     import tensorflow.compat.v1 as tf1
@@ -21,6 +23,9 @@ def pytest_addoption(parser):
     parser.addoption(
         "--plot-policy", action="store_true", default=False, help="plots policy parameter information for certain tests"
     )
+    parser.addoption(
+        "--run-slow", action="store_true", default=False, help="run slow tests"
+    )
 
 
 def pytest_configure(config):
@@ -30,6 +35,16 @@ def pytest_configure(config):
                    "fixture. Optionally specify `max_samples`. By default it is equal to `sample_size`. If it is "
                    "bigger, then additional samples are drawn if the test fails after taking `sample_size` samples, up"
                    "to the specified `max_samples`. If it is smaller than `max_samples` it is capped to `sample_size`")
+    config.addinivalue_line("markers", "slow: mark test as slow to run")
+
+
+def pytest_collection_modifyitems(config, items):
+    if config.getoption("--run-slow"):
+        return
+    skip_slow = pytest.mark.skip(reason="need --run-slow option to run")
+    for item in items:
+        if "slow" in item.keywords:
+            item.add_marker(skip_slow)
 
 
 class StochasticRunRecorder:
@@ -170,14 +185,7 @@ def summary_writer(session, log_tensorboard, request):
             shutil.rmtree(ld, ignore_errors=True)
             return tf.summary.FileWriter(ld, session=session)
         else:
-            class _NoLog:
-                def add_summary(self, *args, **kwargs):
-                    pass
-
-                def add_graph(self, *args, **kwargs):
-                    pass
-
-            return _NoLog()
+            return NoLog()
 
     w = writer()
     yield w
