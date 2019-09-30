@@ -14,8 +14,12 @@ def examples(request):
     return Examples(request.session.fspath)
 
 
+def test_reinforce_example_does_not_converge_when_it_does_not_learn(examples):
+    assert _run(examples.reinforce, episodes=500, log_frq=100, lr_policy=0, lr_baseline=0) < 50
+
+
 def test_reinforce_example_converges_with_default_setting(examples):
-    assert _run(examples.reinforce, episodes=500, log_frq=100) > 50
+    assert _run(examples.reinforce, episodes=500, log_frq=100) > 100
 
 
 @pytest.mark.slow
