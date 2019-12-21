@@ -4,6 +4,7 @@ python:
 install:
   - make install TARGET=test
 script:
+  - pip install coverage==4.5.4
   - pip install python-coveralls
   - scripts/embedmd -d README.md
   - make coverage
