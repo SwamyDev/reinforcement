@@ -45,7 +45,7 @@ setup(
     extras_require={
         'tf_gpu': ['numpy<1.17', 'tensorflow-gpu==1.14'],
         'tf_cpu': ['numpy<1.17', 'tensorflow==1.15.0'],
-        'test': ['numpy<1.17', 'tensorflow==1.15.0', 'pytest', 'pytest-rerunfailures', 'matplotlib', 'gym'],
+        'test': ['numpy<1.17', 'tensorflow==1.15.0', 'pytest>=4.4', 'pytest-rerunfailures', 'matplotlib', 'gym'],
     },
     project_urls={
         'Bug Reports': 'https://github.com/SwamyDev/reinforcement/issues',
